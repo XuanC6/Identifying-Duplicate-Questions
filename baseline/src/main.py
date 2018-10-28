@@ -32,7 +32,7 @@ class Classifier:
             init = tf.global_variables_initializer()
             saver = tf.train.Saver()
             sess.run(init)
-    
+
             # assign word_embedding
             if not self.config.embedding_random_flag:
                 word_embedding = np.loadtxt(self.config.wordvecs_path, dtype=np.float32)
