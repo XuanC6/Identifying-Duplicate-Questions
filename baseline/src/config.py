@@ -52,7 +52,7 @@ class Configuration:
         self.batch_size = 20
         self.wordvec_size = 100
         self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
-        
+        # number of hidden nodes in rnn cell
         self.n_neurons = 100
         
         self.embedding_random_flag = False
