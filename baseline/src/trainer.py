@@ -33,31 +33,25 @@ class Trainer:
         labels = [self.labels[ix] for ix in batch_idxs]
 
         if random.random() < 0.5:
-            loss, _ = sess.run(
-                    [model.loss, model.train_op],
-                    feed_dict = {
-                        model.input1: input1,
-                        model.input2: input2,
-                        model.length1: length1,
-                        model.length2: length2,
-                        model.labels: labels,
-                        }
-                    )
-        else:
-            loss, _ = sess.run(
-                    [model.loss, model.train_op],
-                    feed_dict = {
-                        model.input1: input2,
-                        model.input2: input1,
-                        model.length1: length2,
-                        model.length2: length1,
-                        model.labels: labels,
-                        }
-                    )
+            input1, input2 = input2, input1
+            length1, length2 = length2, length1
+            
+        loss, _ = sess.run(
+                [model.loss, model.train_op],
+                feed_dict = {
+                    model.input1: input1,
+                    model.input2: input2,
+                    model.length1: length1,
+                    model.length2: length2,
+                    model.labels: labels,
+                    model.training: True
+                    }
+                )
+
         return loss
 
 
-    def train(self, raw_data, model, sess, shuffle_flag=True):
+    def train_one_epoch(self, raw_data, model, sess, shuffle_flag=True):
         # train one epoch
         self._feed_raw_data(raw_data, shuffle_flag=shuffle_flag)
 

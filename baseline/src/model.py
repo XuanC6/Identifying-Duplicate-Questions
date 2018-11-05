@@ -2,7 +2,7 @@
 import tensorflow as tf
 
 
-class BiGRUModel:
+class BiLSTMModel:
 
     def __init__(self, config):
         self.config = config
@@ -25,76 +25,70 @@ class BiGRUModel:
         self.length1 = tf.placeholder(tf.int32, [None], name="length1")
         self.length2 = tf.placeholder(tf.int32, [None], name="length2")
         self.labels = tf.placeholder(tf.int32, [None], name="labels")
+        self.training = tf.placeholder_with_default(False, [], name="training")
 
 
     def add_embedding(self):
+        def add_embedding_helper(name):
+            embedding = tf.get_variable(
+                name,
+                [self.num_words, self.wordvec_size],
+                initializer = tf.random_uniform_initializer(-0.05, 0.05),
+                trainable = True)
+            return embedding
+        
         with tf.variable_scope("Embed"):
-            if self.config.embedding_random_flag:
-                embedding1 = tf.get_variable(
-                    'embedding1',
-                    [self.num_words, self.wordvec_size],
-                    initializer = tf.random_uniform_initializer(-0.05, 0.05),
-                    trainable = True,
-                )
-                embedding2 = tf.get_variable(
-                    'embedding2',
-                    [self.num_words, self.wordvec_size],
-                    initializer = tf.random_uniform_initializer(-0.05, 0.05),
-                    trainable = True,
-                )
-            else:
-                embedding1 = tf.get_variable("embedding1", 
-                                             [self.num_words, self.wordvec_size],
-                                             trainable = True)
-                embedding2 = tf.get_variable("embedding2", 
-                                             [self.num_words, self.wordvec_size],
-                                             trainable = True)
-
-            vec_input1 = tf.nn.embedding_lookup(embedding1, self.input1)
-            vec_input2 = tf.nn.embedding_lookup(embedding2, self.input2)
+            embedding1 = add_embedding_helper("embedding1")
+            embedding2 = add_embedding_helper("embedding2")
+        
+        vec_input1 = tf.nn.embedding_lookup(embedding1, self.input1)
+        vec_input2 = tf.nn.embedding_lookup(embedding2, self.input2)
 
         return [vec_input1, vec_input2]
 
 
     def _run_rnn(self, inputs):
         #calculate outputs
-        with tf.variable_scope("GRU1"):
-            cell_fw_1 = tf.nn.rnn_cell.GRUCell(num_units=self.config.n_neurons)
-            cell_bw_1 = tf.nn.rnn_cell.GRUCell(num_units=self.config.n_neurons)
-        with tf.variable_scope("GRU2"):
-            cell_fw_2 = tf.nn.rnn_cell.GRUCell(num_units=self.config.n_neurons)
-            cell_bw_2 = tf.nn.rnn_cell.GRUCell(num_units=self.config.n_neurons)
+        def get_lstmcells():
+            lstmcells = [None for _ in range(4)]
+            for i in range(4):
+                cell = tf.nn.rnn_cell.LSTMCell(num_units=self.config.num_units,
+                                               use_peepholes=True,
+                                               state_is_tuple=True)
+                cell = tf.contrib.rnn.AttentionCellWrapper(cell,
+                                                           attn_length=self.num_steps)
+                lstmcells[i] = cell
+            return lstmcells
 
-        with tf.variable_scope("GRU1_bi"):
-            states1, output1 = tf.nn.bidirectional_dynamic_rnn(cell_fw_1, cell_bw_1, inputs[0],
+        lstmcells = get_lstmcells()
+        with tf.variable_scope("Bidirectional_LSTM1"):
+            outputs1, state1 = tf.nn.bidirectional_dynamic_rnn(lstmcells[0], lstmcells[1], inputs[0],
                                                                sequence_length = self.length1,
                                                                dtype=tf.float32)
-        with tf.variable_scope("GRU2_bi"):
-            states2, output2 = tf.nn.bidirectional_dynamic_rnn(cell_fw_2, cell_bw_2, inputs[1],
+        with tf.variable_scope("Bidirectional_LSTM2"):
+            outputs2, state2 = tf.nn.bidirectional_dynamic_rnn(lstmcells[2], lstmcells[3], inputs[1],
                                                                sequence_length = self.length2,
                                                                dtype=tf.float32)
 
-        fw_out1, bw_out1 = output1
-        fw_out2, bw_out2 = output2
+        fw_state1, bw_state1 = state1
+        fw_state2, bw_state2 = state2
         
-        rnn_output = tf.concat([fw_out1, bw_out1, fw_out2, bw_out2], axis = -1)
+        rnn_output = tf.concat([fw_state1[1], bw_state1[1], 
+                                fw_state2[1], bw_state2[1]],
+                                axis = -1)
         
         return rnn_output
 
 
-
     def compute_loss(self, inputs):
-        rnn_output = self._run_rnn(inputs)
+        hidden_layer = self._run_rnn(inputs)
         
-        n_hidden_nodes = [600, 600, 400]
-        hidden_names = ['hidden1','hidden2','hidden3']
-        hidden_layer = rnn_output
-        
-        for n_node, name in zip(n_hidden_nodes, hidden_names):
+        for n_node in self.config.mlp_hidden_nodes:
             hidden_layer = tf.layers.dense(hidden_layer, n_node, 
                                            activation = tf.nn.elu,
-                                           kernel_initializer = self.initializer,
-                                           name = name)
+                                           kernel_initializer = self.initializer)
+            hidden_layer = tf.layers.dropout(hidden_layer, self.config.dropout,
+                                             training = self.training)
 
         logits = tf.layers.dense(hidden_layer, 1,
                                  kernel_initializer = self.initializer,
@@ -103,7 +97,12 @@ class BiGRUModel:
         scores = tf.nn.sigmoid(logits, name="predict_probs")
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = tf.to_float(self.labels),
                                                        logits = tf.squeeze(logits))
-        self.loss = tf.reduce_mean(loss, name="loss")
+        
+        # put more weight on samples with label 1
+        alpha = 0.266
+        weights = tf.exp((tf.to_float(self.labels)-0.5)*2*alpha, name="weights")
+        weighted_loss = tf.multiply(weights, loss, name="weighted_loss")
+        self.loss = tf.reduce_sum(weighted_loss)/tf.reduce_sum(weights)
 
         result_options = tf.concat([1-scores, scores], axis = 1)
         self.predicts = tf.argmax(result_options, axis = 1)

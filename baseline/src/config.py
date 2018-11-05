@@ -1,7 +1,7 @@
 
 import os
 import tensorflow as tf
-from model import *
+from model import BiLSTMModel
 
 
 class Configuration:
@@ -47,14 +47,15 @@ class Configuration:
         '''
         model parameters
         '''
-        self.model = BiGRUModel
+        self.model = BiLSTMModel
         self.num_steps = 35
         self.batch_size = 20
         self.wordvec_size = 100
         self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
         # number of hidden nodes in rnn cell
-        self.n_neurons = 100
-        
+        self.num_units = 200
+        self.mlp_hidden_nodes = [800, 800, 600]
+
         self.embedding_random_flag = False
 
         self.initializer = tf.contrib.layers.variance_scaling_initializer()
@@ -63,17 +64,17 @@ class Configuration:
         '''
         training parameters
         '''
-        self.lr_decay = False
+#        self.lr_decay = False
+#        self.lr_decay_epoch = 6
+#        self.lr_decay_rate = 0.9
         self.learning_rate = 0.001
-        self.lr_decay_epoch = 6
-        self.lr_decay_rate = 0.9
+        self.dropout = 0.5
 
-        self.num_epoch = 20
+        self.num_epoch = 30
         self.early_stop_epoch = 10
-        self.max_grad_norm = 5
         self.threshold = 1.0
         # model saved flag when meet best valid score
-        self.model_save_by_best_valid = False
+        self.model_save_by_best_valid = True
         # model saved period when model_save_by_best_valid==False
         self.model_save_period = 5
         self.shuffle_data = True

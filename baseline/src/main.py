@@ -5,8 +5,9 @@ import sys, os, glob
 import tensorflow as tf
 
 from reader import Reader
-from config import Configuration
 from trainer import Trainer
+from config import Configuration
+
 
 
 class Classifier:
@@ -37,34 +38,37 @@ class Classifier:
             if not self.config.embedding_random_flag:
                 word_embedding = np.loadtxt(self.config.wordvecs_path, dtype=np.float32)
                 with tf.variable_scope("Embed", reuse=True):
-                    embedding1 = tf.get_variable("embedding1", [self.config.num_words, self.config.wordvec_size])
-                    embedding2 = tf.get_variable("embedding2", [self.config.num_words, self.config.wordvec_size])
+                    embedding1 = tf.get_variable("embedding1", 
+                                                 [self.config.num_words, self.config.wordvec_size])
+                    embedding2 = tf.get_variable("embedding2", 
+                                                 [self.config.num_words, self.config.wordvec_size])
                     e1_assign = embedding1.assign(word_embedding)
                     e2_assign = embedding2.assign(word_embedding)
             
             sess.run([e1_assign, e2_assign])
-    
+
             best_valid_acc = 0.0
             best_valid_epoch = 0
-    
+
             if restore:
                 saver.restore(sess, self.config.model_path)
-    
+
             with open(self.config.log_train_acc_path, "w") as train_acc_fp,\
                 open(self.config.log_valid_acc_path, "w") as valid_acc_fp:
 
                 for epoch in range(self.config.num_epoch):
                     start_time = time.time()
 
-                    # whether decay lr
-                    if self.config.lr_decay and epoch > self.config.decay_epoch:
-                        lr_decay = self.config.lr_decay**max(epoch-self.config.decay_epoch, 0.0)
-                        sess.run(tf.assign(model.learning_rate, self.config.learning_rate*lr_decay))
+#                    # whether decay lr
+#                    if self.config.lr_decay and epoch > self.config.decay_epoch:
+#                        lr_decay = self.config.lr_decay**max(epoch-self.config.decay_epoch, 0.0)
+#                        sess.run(tf.assign(model.learning_rate, self.config.learning_rate*lr_decay))
 
                     # train one epoch
                     print('='*40)
                     print(("Epoch %d, Learning Rate: %.4f")%(epoch+1, sess.run(model.learning_rate)))
-                    loss = self.trainer.train(self.train_set, model, sess, self.config.shuffle_data)
+                    print(("best valid acc now: %.4f") % best_valid_acc)
+                    loss = self.trainer.train_one_epoch(self.train_set, model, sess, self.config.shuffle_data)
                     print(('\ntrain loss: %.4f') % loss)
 
                     # evaluate on train data
@@ -72,29 +76,29 @@ class Classifier:
                         train_acc = self.trainer.evaluate(self.train_set, model, sess)
                         print(('train acc: %.4f')%train_acc)
                         train_acc_fp.write("%d: %.4f\n"%(epoch+1, train_acc))
-    
+
                     # evaluate on valid data
                     valid_acc = self.trainer.evaluate(self.val_set, model, sess)
                     print(('valid acc: %.4f')%valid_acc)
                     valid_acc_fp.write("%d: %.4f\n"%(epoch+1, valid_acc))
-    
+
                     # save model if save_by_best_valid
                     if valid_acc > best_valid_acc:
                         best_valid_acc = valid_acc
                         best_valid_epoch = epoch
                         if self.config.model_save_by_best_valid:
                             saver.save(sess, self.config.model_path)
-    
+
                     # save model if not save_by_best_valid
                     if not self.config.model_save_by_best_valid and (epoch+1)%self.config.model_save_period==0:
                         saver.save(sess, self.config.model_path)
-    
+
                     # break if save_by_best_valid
                     if self.config.model_save_by_best_valid and epoch-best_valid_epoch > self.config.early_stop_epoch:
                         break
-    
+
                     print("time per epoch is %.2f min"%((time.time()-start_time)/60.0))
-    
+
             # save final model if not save_by_best_valid
             if not self.config.model_save_by_best_valid:
                 saver.save(sess, self.config.model_path)
