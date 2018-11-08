@@ -1,4 +1,3 @@
-
 import sys
 import random
 
@@ -44,6 +43,7 @@ class Trainer:
                     model.length1: length1,
                     model.length2: length2,
                     model.labels: labels,
+                    model.dropout: 1-model.config.dropout,
                     model.training: True
                     }
                 )
@@ -95,6 +95,7 @@ class Trainer:
                         model.length1: length1,
                         model.length2: length2,
                         model.labels: labels,
+                        model.dropout: 1.0
                         }
                 )
         return (predicts, probs, labels)

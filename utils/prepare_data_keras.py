@@ -11,14 +11,12 @@ import numpy as np
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 
-
+# In[path]
 data_dir = os.path.dirname(os.path.dirname(__file__)) + "/baseline/data/"
 indices_dir = data_dir + "indices/"
 train_dir = data_dir + "train/"
 val_dir = data_dir + "valid/"
 glove_dir = data_dir + "/glove.6B"
-
-load = True
 
 if not os.path.exists(indices_dir):
     os.mkdir(indices_dir)
@@ -27,27 +25,33 @@ if not os.path.exists(train_dir):
 if not os.path.exists(val_dir):
     os.mkdir(val_dir)
 
+load = True
 
-# read data
+# In[read data]
 with open(data_dir+"questions.csv",'r',encoding='UTF-8') as f:
     questions = []
     labels = []
     
     f_csv = csv.reader(f)
+    old = "′‘’´`"
     for line in f_csv:
         if f_csv.line_num == 1:
                 continue
-
-        questions.append(line[3])
-        questions.append(line[4])
+        q1 = line[3]
+        q2 = line[4]
+        for s in old:
+            q1 = q1.replace(s, "'")
+            q2 = q2.replace(s, "'")
+        questions.append(q1)
+        questions.append(q2)
         labels.append(int(line[5]))
 
-# process data
+# In[process data]
 max_len = 35
-max_words = 100000
 training_samples = 380000
 
-tokenizer = Tokenizer(num_words = max_words)
+tokenizer = Tokenizer(filters='—…⚡；？！。，、″¨“”：（）《》【】!"#$%&()*+,-./:;<=>?@[\]^_`{|}~\t\n ')
+
 tokenizer.fit_on_texts(questions)
 sequences = tokenizer.texts_to_sequences(questions)
 word_index = tokenizer.word_index
@@ -131,8 +135,7 @@ np.savetxt(data_dir+"labels.txt", labels, fmt='%d')
 np.savetxt(data_dir+"lengths.txt", lengths, fmt='%d')
 
 
-
-# glove word embeddings
+# In[glove word embeddings]
 embeddings_index = {}
 with open(os.path.join(glove_dir, "glove.6B.100d.txt"), "r", encoding='UTF-8') as f:
     for line in f:
@@ -144,16 +147,13 @@ with open(os.path.join(glove_dir, "glove.6B.100d.txt"), "r", encoding='UTF-8') a
 print('Found %s word vectors.'%len(embeddings_index))
 
 embedding_dim = 100
-embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
+#embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
+embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
+embedding_matrix = (embedding_matrix-0.5)/10
+
 for word, i in word_index.items():
     embedding_vector = embeddings_index.get(word)
     if embedding_vector is not None:
         embedding_matrix[i] = embedding_vector
 
 np.savetxt(data_dir+"wordvecs.txt", embedding_matrix)
-
-
-
-
-
-

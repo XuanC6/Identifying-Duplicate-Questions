@@ -1,4 +1,3 @@
-
 import time
 import numpy as np
 import sys, os, glob
@@ -9,18 +8,20 @@ from trainer import Trainer
 from config import Configuration
 
 
-
 class Classifier:
+    
     def __init__(self):
         self.config = Configuration()
         self.reader = Reader(self.config)
         self.trainer = Trainer()
         self.load_data()
 
+
     def load_data(self):
         data = self.reader.load_data()
         self.train_set = data['train']
         self.val_set = data['valid']
+
 
     def train(self, restore):
         if restore == False:
@@ -47,10 +48,12 @@ class Classifier:
             
             sess.run([e1_assign, e2_assign])
 
-            best_valid_acc = 0.0
+#            best_valid_acc = 0.0
+            best_valid_acc = 0.8177
             best_valid_epoch = 0
 
             if restore:
+                print("Continue Training")
                 saver.restore(sess, self.config.model_path)
 
             with open(self.config.log_train_acc_path, "w") as train_acc_fp,\
@@ -59,10 +62,10 @@ class Classifier:
                 for epoch in range(self.config.num_epoch):
                     start_time = time.time()
 
-#                    # whether decay lr
-#                    if self.config.lr_decay and epoch > self.config.decay_epoch:
-#                        lr_decay = self.config.lr_decay**max(epoch-self.config.decay_epoch, 0.0)
-#                        sess.run(tf.assign(model.learning_rate, self.config.learning_rate*lr_decay))
+                    # whether decay lr
+                    if self.config.lr_decay and epoch+1 > self.config.lr_decay_epoch:
+                        lr_decay = self.config.lr_decay_rate**max(epoch+1-self.config.lr_decay_epoch, 0.0)
+                        sess.run(tf.assign(model.learning_rate, self.config.learning_rate*lr_decay))
 
                     # train one epoch
                     print('='*40)
@@ -85,7 +88,7 @@ class Classifier:
                     # save model if save_by_best_valid
                     if valid_acc > best_valid_acc:
                         best_valid_acc = valid_acc
-                        best_valid_epoch = epoch
+                        best_valid_epoch = epoch+1
                         if self.config.model_save_by_best_valid:
                             saver.save(sess, self.config.model_path)
 
@@ -102,7 +105,7 @@ class Classifier:
             # save final model if not save_by_best_valid
             if not self.config.model_save_by_best_valid:
                 saver.save(sess, self.config.model_path)
-    
+
             print(("\nbest valid acc: %.4f")%best_valid_acc)
             test_acc = self.trainer.evaluate(self.val_set, model, sess)
             print(('*'*10 + 'test acc: %.4f')%test_acc)

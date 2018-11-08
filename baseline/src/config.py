@@ -1,7 +1,6 @@
-
 import os
 import tensorflow as tf
-from model import BiLSTMModel
+from model import BiRNNModel
 
 
 class Configuration:
@@ -47,28 +46,30 @@ class Configuration:
         '''
         model parameters
         '''
-        self.model = BiLSTMModel
+        self.model = BiRNNModel
         self.num_steps = 35
-        self.batch_size = 20
+        self.batch_size = 32
         self.wordvec_size = 100
         self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
         # number of hidden nodes in rnn cell
         self.num_units = 200
+#        self.atn_hidden_size = self.num_units
         self.mlp_hidden_nodes = [800, 800, 600]
 
         self.embedding_random_flag = False
 
-        self.initializer = tf.contrib.layers.variance_scaling_initializer()
+        self.initializer = tf.contrib.layers.variance_scaling_initializer
+        self.rnn_initializer = tf.glorot_uniform_initializer
         self.optimizer = tf.train.AdamOptimizer
 
         '''
         training parameters
         '''
-#        self.lr_decay = False
-#        self.lr_decay_epoch = 6
-#        self.lr_decay_rate = 0.9
+        self.lr_decay = True
+        self.lr_decay_epoch = 1
+        self.lr_decay_rate = 0.9
         self.learning_rate = 0.001
-        self.dropout = 0.5
+        self.dropout = 0.35
 
         self.num_epoch = 30
         self.early_stop_epoch = 10
