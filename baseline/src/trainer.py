@@ -104,9 +104,15 @@ class Trainer:
     def evaluate(self, raw_data, model, sess):
         self._feed_raw_data(raw_data, shuffle_flag=False)
 
+        batch_size = model.config.batch_size
+
         total_data = 0
         num_correct = 0
-        batch_size = model.config.batch_size
+        predict_1 = 0
+        predict_1_correct = 0
+        predict_0_correct = 0
+        true_1 = 0
+        metrics = {}
 
         for step in range(0, len(self.labels), batch_size):
             if min(step+batch_size,len(self.labels)) < batch_size + step:
@@ -117,8 +123,32 @@ class Trainer:
             for pred, label in zip(predicts, labels):
                 if pred == label:
                     num_correct += 1
+                if pred == label == 1:
+                    # TP
+                    predict_1_correct += 1
+                if pred == label == 0:
+                    # TN
+                    predict_0_correct += 1
+                if pred == 1:
+                    # TP + FP
+                    predict_1 += 1
+                if label == 1:
+                    # TP + FN
+                    true_1 += 1
 
             total_data += batch_size
-
-        acc = num_correct/total_data
-        return acc
+            
+        metrics["TP"] = predict_1_correct
+        metrics["TN"] = predict_0_correct
+        metrics["FP"] = predict_1 - predict_1_correct
+        metrics["FN"] = true_1 - predict_1_correct
+        
+        metrics["acc"] = num_correct/total_data
+        
+        precision = predict_1_correct/predict_1
+        recall = predict_1_correct/true_1
+        metrics["precision"] = precision
+        metrics["recall"] = recall
+        metrics["F1 score"] = 2*precision*recall/(precision + recall)
+        
+        return metrics

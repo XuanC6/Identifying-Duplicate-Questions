@@ -48,8 +48,7 @@ class Classifier:
             
             sess.run([e1_assign, e2_assign])
 
-#            best_valid_acc = 0.0
-            best_valid_acc = 0.8177
+            best_valid_acc = 0.0
             best_valid_epoch = 0
 
             if restore:
@@ -76,18 +75,18 @@ class Classifier:
 
                     # evaluate on train data
                     if (epoch+1)%5 == 0:
-                        train_acc = self.trainer.evaluate(self.train_set, model, sess)
-                        print(('train acc: %.4f')%train_acc)
-                        train_acc_fp.write("%d: %.4f\n"%(epoch+1, train_acc))
+                        train_metrics = self.trainer.evaluate(self.train_set, model, sess)
+                        print(('train acc: %.4f')%train_metrics["acc"])
+                        train_acc_fp.write("%d: %.4f\n"%(epoch+1, train_metrics["acc"]))
 
                     # evaluate on valid data
-                    valid_acc = self.trainer.evaluate(self.val_set, model, sess)
-                    print(('valid acc: %.4f')%valid_acc)
-                    valid_acc_fp.write("%d: %.4f\n"%(epoch+1, valid_acc))
+                    metrics = self.trainer.evaluate(self.val_set, model, sess)
+                    print(('valid acc: %.4f')%metrics["acc"])
+                    valid_acc_fp.write("%d: %.4f\n"%(epoch+1, metrics["acc"]))
 
                     # save model if save_by_best_valid
-                    if valid_acc > best_valid_acc:
-                        best_valid_acc = valid_acc
+                    if metrics["acc"] > best_valid_acc:
+                        best_valid_acc = metrics["acc"]
                         best_valid_epoch = epoch+1
                         if self.config.model_save_by_best_valid:
                             saver.save(sess, self.config.model_path)
@@ -107,8 +106,8 @@ class Classifier:
                 saver.save(sess, self.config.model_path)
 
             print(("\nbest valid acc: %.4f")%best_valid_acc)
-            test_acc = self.trainer.evaluate(self.val_set, model, sess)
-            print(('*'*10 + 'test acc: %.4f')%test_acc)
+            metrics = self.trainer.evaluate(self.val_set, model, sess)
+            print(('*'*10 + 'test acc: %.4f')%metrics["acc"])
 
 
     def test(self):
@@ -122,9 +121,16 @@ class Classifier:
             saver.restore(sess, self.config.model_path)
 
             print("testing..............")
-            acc = self.trainer.evaluate(test_set, model, sess)
-            print(("test acc: %.4f")%acc)
+            metrics = self.trainer.evaluate(test_set, model, sess)
+            print(("accuracy: %.4f")%metrics["acc"])
+            print(("precision: %.4f")%metrics["precision"])
+            print(("recall: %.4f")%metrics["recall"])
+            print(("F1 score: %.4f")%metrics["F1 score"])
 
+            print(("TP: %d")%metrics["TP"])
+            print(("TN: %d")%metrics["TN"])
+            print(("FP: %d")%metrics["FP"])
+            print(("FN: %d")%metrics["FN"])
 
 
 if __name__ == "__main__":
