@@ -9,7 +9,7 @@ import numpy as np
 
 data_dir = os.path.dirname(os.path.dirname(__file__)) + "/baseline/data/"
 
-
 # class ratio
 labels = np.loadtxt(data_dir+"labels.txt", dtype = np.int32)
+print(len(labels))
 print(np.sum(labels)/len(labels))

@@ -30,7 +30,7 @@ word_index = {}
 word_counts = defaultdict(lambda: 0)
 
 signs = '?.？。!！ '
-split_signs = r'\s*[—…⚡；？！。，、″¨“”：（）《》【】\\!"#$%&()*+,-./:;<=>?@[\]^_`{|}~\t\n\s]\s*'
+split_signs = r'\s*[—…⚡；？！。，、″¨“”：（）《》【】\\!"#$%&()*+,-./:;<=>?@[\]^_`{|}~\s]\s*'
 
 
 # In[read data]
