@@ -38,7 +38,7 @@ class BiRNNModel:
                 name,
                 [self.num_words, self.wordvec_size],
                 initializer = tf.random_uniform_initializer(-0.05, 0.05),
-                trainable = True)
+                trainable = self.config.word_embedding_trainable)
             return embedding
         
         with tf.variable_scope("Embed"):

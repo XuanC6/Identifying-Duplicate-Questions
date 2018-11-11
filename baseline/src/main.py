@@ -36,7 +36,7 @@ class Classifier:
             sess.run(init)
 
             # assign word_embedding
-            if not self.config.embedding_random_flag:
+            if self.config.word_embedding_pretrained:
                 word_embedding = np.loadtxt(self.config.wordvecs_path, dtype=np.float32)
                 with tf.variable_scope("Embed", reuse=True):
                     embedding1 = tf.get_variable("embedding1", 
@@ -70,10 +70,11 @@ class Classifier:
                     print('='*40)
                     print(("Epoch %d, Learning Rate: %.4f")%(epoch+1, sess.run(model.learning_rate)))
                     print(("best valid acc now: %.4f") % best_valid_acc)
+                    print(("best valid epoch now: %d") % best_valid_epoch)
                     loss = self.trainer.train_one_epoch(self.train_set, model, sess, self.config.shuffle_data)
                     print(('\ntrain loss: %.4f') % loss)
 
-                    # evaluate on train data
+                    # evaluate on train data every 5 epoches
                     if (epoch+1)%5 == 0:
                         train_metrics = self.trainer.evaluate(self.train_set, model, sess)
                         print(('train acc: %.4f')%train_metrics["acc"])

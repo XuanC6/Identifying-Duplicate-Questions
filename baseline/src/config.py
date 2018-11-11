@@ -15,7 +15,7 @@ class Configuration:
         length1_name = "length1.txt"
         length2_name = "length2.txt"
         labels_name = "labels.txt"
-        id_word_name = "id_word_keras.txt"
+        id_word_name = "id_word.txt"
         wordvecs_name = "wordvecs.txt"
 
         base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -56,7 +56,8 @@ class Configuration:
 #        self.atn_hidden_size = self.num_units
         self.mlp_hidden_nodes = [800, 800, 600]
 
-        self.embedding_random_flag = False
+        self.word_embedding_pretrained = True
+        self.word_embedding_trainable = True
 
         self.initializer = tf.contrib.layers.variance_scaling_initializer
         self.rnn_initializer = tf.glorot_uniform_initializer
@@ -66,12 +67,12 @@ class Configuration:
         training parameters
         '''
         self.lr_decay = True
-        self.lr_decay_epoch = 1
+        self.lr_decay_epoch = 6
         self.lr_decay_rate = 0.9
         self.learning_rate = 0.001
         self.dropout = 0.35
 
-        self.num_epoch = 30
+        self.num_epoch = 40
         self.early_stop_epoch = 10
         self.threshold = 1.0
         # model saved flag when meet best valid score
