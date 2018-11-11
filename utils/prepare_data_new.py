@@ -68,26 +68,29 @@ with open(data_dir+"questions.csv",'r',encoding='UTF-8') as f:
         for s in apostrophe:
             q1 = q1.replace(s, "'")
             q2 = q2.replace(s, "'")
-        
-        q1_list = re.split(split_signs, q1.strip(signs))
+
+        # def split(pattern, string, maxsplit=0, flags=0):
+        q1_list = re.split(split_signs, q1.strip(signs))    # signs = '?.？。!！ '
         q2_list = re.split(split_signs, q2.strip(signs))
 
-        q_seqs.append(word2idx(q1_list))
-        q_seqs.append(word2idx(q2_list))
+        q_seqs.append(word2idx(q1_list))    # every two line,
+        q_seqs.append(word2idx(q2_list))    # put q1 and q2's word list
         labels.append(int(line[5]))
 
 
 # In[save dicts and parsed data]
-index_word = {value:key for key, value in word_index.items()}
+index_word = {value:key for key, value in word_index.items()}   # turn word_index into index_word
 with open(data_dir+"data_parsed.txt","w",encoding='UTF-8') as f:
     for seq in q_seqs:
         for s in seq:
             f.write(index_word[s] + ' ')
         f.write('\n')
+    # \\s, \n
 
 with open(data_dir+"id_word.txt","w",encoding='UTF-8') as f:
     for word, idx in word_index.items():
         f.write(str(idx) + '\t' + word + '\n')
+
 
 with open(data_dir+"word_counts.txt","w",encoding='UTF-8') as f:
     
