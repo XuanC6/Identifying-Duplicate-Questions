@@ -67,9 +67,9 @@ class Trainer:
 
             if percent//20 > output_iter:
                 output_iter = percent//20
-                print('train loss: %.4f at %.2f%% of training set.\r'%(loss, percent))
+                print('train loss: %.4f at %.2f%% of train set.\r'%(loss, percent))
 
-            sstr = 'train loss: %.4f at %.2f%% of training set.\r'%(loss, percent)
+            sstr = 'train loss: %.4f at %.2f%% of train set.\r'%(loss, percent)
             sys.stdout.write(sstr)
             # for linux
             sys.stdout.flush()
