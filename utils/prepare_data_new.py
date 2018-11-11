@@ -34,7 +34,8 @@ split_signs = r'\s*[—…⚡；？！。，、″¨“”：（）《》【】!
 
 
 # In[read data]
-def word2idx(q):
+# word list -> index list
+def word2idx(q: list) -> list:
     q_seq = []
 
     for word in q:
@@ -42,6 +43,7 @@ def word2idx(q):
         if word == '' or word == ' ':
             continue
         if word not in word_index:
+            # indexing
             word_index[word] = len(word_index)+1
         
         word_counts[word] += 1
@@ -55,13 +57,15 @@ with open(data_dir+"questions.csv",'r',encoding='UTF-8') as f:
     labels = []
     
     f_csv = csv.reader(f)
-    old = "′‘’´`"
+    apostrophe = "′‘’´`"
     for line in f_csv:
+        # ignore first line
         if f_csv.line_num == 1:
                 continue
+        # String
         q1 = line[3]
         q2 = line[4]
-        for s in old:
+        for s in apostrophe:
             q1 = q1.replace(s, "'")
             q2 = q2.replace(s, "'")
         

@@ -18,9 +18,9 @@ class Classifier:
 
 
     def load_data(self):
-        data = self.reader.load_data()
-        self.train_set = data['train']
-        self.val_set = data['valid']
+        data = self.reader.load_data()  # dict
+        self.train_set = data['train']  # [ndarray]
+        self.val_set = data['valid']    # [ndarray]
 
 
     def train(self, restore):
@@ -135,6 +135,7 @@ class Classifier:
 
 
 if __name__ == "__main__":
+
 
     classifier = Classifier()
 
