@@ -18,9 +18,13 @@ class Configuration:
         id_word_name = "id_word.txt"
         wordvecs_name = "wordvecs.txt"
 
+        # cd ../../
         base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        # cd data
         data_dir = os.path.join(base_dir, "data")
+        # cd data/train
         train_dir = os.path.join(data_dir, "train")
+        # cd data/valid
         valid_dir = os.path.join(data_dir, "valid")
 
         # train path
