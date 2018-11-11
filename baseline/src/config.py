@@ -61,7 +61,7 @@ class Configuration:
         self.mlp_hidden_nodes = [800, 800, 600]
 
         self.word_embedding_pretrained = True
-        self.word_embedding_trainable = True
+        self.word_embedding_trainable = False
 
         self.initializer = tf.contrib.layers.variance_scaling_initializer
         self.rnn_initializer = tf.glorot_uniform_initializer

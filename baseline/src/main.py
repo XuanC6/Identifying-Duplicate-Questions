@@ -51,6 +51,9 @@ class Classifier:
             best_valid_acc = 0.0
             best_valid_epoch = 0
 
+#Epoch 24, Learning Rate: 0.0002
+#best valid acc now: 0.8199
+
             if restore:
                 print("Continue Training")
                 saver.restore(sess, self.config.model_path)
