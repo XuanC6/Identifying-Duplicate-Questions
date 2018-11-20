@@ -89,8 +89,8 @@ class Configuration:
         self.log_dir = os.path.join(base_dir, "logs")
 
         self.model_name = self.model.__name__
-        self.model_data_dir = os.path.join(self.log_dir, "model_data")
-        self.model_data_path = os.path.join(self.model_data_dir, self.model_name)
+        self.model_dir = os.path.join(self.log_dir, "model")
+        self.model_path = os.path.join(self.model_dir, self.model_name)
 
         self.log_graph_dir = os.path.join(self.log_dir, "graph")
         self.log_train_dir = os.path.join(self.log_dir, "train")
@@ -99,7 +99,7 @@ class Configuration:
 
         if not os.path.exists(self.log_dir):
             os.mkdir(self.log_dir)
-        if not os.path.exists(self.model_data_dir):
-            os.mkdir(self.model_data_dir)
+        if not os.path.exists(self.model_dir):
+            os.mkdir(self.model_dir)
         if not os.path.exists(self.log_train_dir):
             os.mkdir(self.log_train_dir)
