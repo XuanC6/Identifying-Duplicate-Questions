@@ -1,5 +1,4 @@
-# DupQues
-INTRO TO MACHINE LEARNING PROJECTS: IDENTIFYING DUPLICATE QUESTIONS
+# INTRO TO MACHINE LEARNING PROJECTS: IDENTIFYING DUPLICATE QUESTIONS
 
 ## Background and summary: 
 This dataset was published by Quora for the purpose of solving the problem of identifying duplicate questions to simplify searching for answers to a question posed. As a simple example, the queries “What is the most populous state in the USA?” and “Which state in the United States has the most people?” should not exist separately on Quora because the intent behind both is identical. Having a canonical page for each logically distinct query makes knowledge-sharing more efficient, so that knowledge seekers can access all the answers to a question in a single location.
