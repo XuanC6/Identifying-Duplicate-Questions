@@ -85,21 +85,20 @@ class Configuration:
         '''
         log paths
         '''
-        # model path
-        self.model_name = self.model.__name__
-        self.model_dir = os.path.join(base_dir, "model")
-        self.model_path = os.path.join(self.model_dir, self.model_name)
-
-        # log path
         self.log_dir = os.path.join(base_dir, "logs")
+
+        self.model_name = self.model.__name__
+        self.model_data_dir = os.path.join(self.log_dir, "model_data")
+        self.model_data_path = os.path.join(self.model_data_dir, self.model_name)
+
         self.log_graph_dir = os.path.join(self.log_dir, "graph")
         self.log_train_dir = os.path.join(self.log_dir, "train")
         self.log_train_acc_path = os.path.join(self.log_train_dir, self.model_name+".train.acc.log")
         self.log_valid_acc_path = os.path.join(self.log_train_dir, self.model_name+".valid.acc.log")
 
-        if not os.path.exists(self.model_dir):
-            os.mkdir(self.model_dir)
         if not os.path.exists(self.log_dir):
             os.mkdir(self.log_dir)
+        if not os.path.exists(self.model_data_dir):
+            os.mkdir(self.model_data_dir)
         if not os.path.exists(self.log_train_dir):
             os.mkdir(self.log_train_dir)
