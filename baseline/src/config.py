@@ -1,6 +1,6 @@
 import os
 import tensorflow as tf
-from model import BiRNNModel
+from models import BiRNNModel, BiPMModel
 
 
 class Configuration:
@@ -19,6 +19,7 @@ class Configuration:
         wordvecs_name = "wordvecs.txt"
 
         base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
         data_dir = os.path.join(base_dir, "data")
         train_dir = os.path.join(data_dir, "train")
         valid_dir = os.path.join(data_dir, "valid")
@@ -57,7 +58,7 @@ class Configuration:
         self.mlp_hidden_nodes = [800, 800, 600]
 
         self.word_embedding_pretrained = True
-        self.word_embedding_trainable = False
+        self.word_embedding_trainable = True
 
         self.initializer = tf.contrib.layers.variance_scaling_initializer
         self.rnn_initializer = tf.glorot_uniform_initializer
@@ -67,7 +68,7 @@ class Configuration:
         training parameters
         '''
         self.lr_decay = True
-        self.lr_decay_epoch = 6
+        self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
         self.learning_rate = 0.001
         self.dropout = 0.35
@@ -82,7 +83,7 @@ class Configuration:
         self.shuffle_data = True
 
         '''
-        model and log paths
+        log paths
         '''
         # model path
         self.model_name = self.model.__name__
@@ -91,6 +92,7 @@ class Configuration:
 
         # log path
         self.log_dir = os.path.join(base_dir, "logs")
+        self.log_graph_dir = os.path.join(self.log_dir, "graph")
         self.log_train_dir = os.path.join(self.log_dir, "train")
         self.log_train_acc_path = os.path.join(self.log_train_dir, self.model_name+".train.acc.log")
         self.log_valid_acc_path = os.path.join(self.log_train_dir, self.model_name+".valid.acc.log")

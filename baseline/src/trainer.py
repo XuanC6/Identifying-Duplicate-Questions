@@ -121,6 +121,10 @@ class Trainer:
             predicts, probs, labels = self._evaluate_one_minibatch(step, model, sess)
 
             for pred, label in zip(predicts, labels):
+#            for prob, label in zip(probs, labels):
+#                pred = 0
+#                if prob > 0.37:
+#                    pred = 1
                 if pred == label:
                     num_correct += 1
                 if pred == label == 1:

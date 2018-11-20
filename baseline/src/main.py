@@ -9,7 +9,7 @@ from config import Configuration
 
 
 class Classifier:
-    
+
     def __init__(self):
         self.config = Configuration()
         self.reader = Reader(self.config)
@@ -34,7 +34,7 @@ class Classifier:
             init = tf.global_variables_initializer()
             saver = tf.train.Saver()
             sess.run(init)
-
+            
             # assign word_embedding
             if self.config.word_embedding_pretrained:
                 word_embedding = np.loadtxt(self.config.wordvecs_path, dtype=np.float32)
@@ -51,12 +51,11 @@ class Classifier:
             best_valid_acc = 0.0
             best_valid_epoch = 0
 
-            #Epoch 24, Learning Rate: 0.0002
-            #best valid acc now: 0.8199
-
             if restore:
                 print("Continue Training")
                 saver.restore(sess, self.config.model_path)
+            
+            writer = tf.summary.FileWriter(self.config.log_graph_dir, sess.graph)
 
             with open(self.config.log_train_acc_path, "w") as train_acc_fp,\
                 open(self.config.log_valid_acc_path, "w") as valid_acc_fp:
@@ -100,7 +99,7 @@ class Classifier:
                         saver.save(sess, self.config.model_path)
 
                     # break if save_by_best_valid
-                    if self.config.model_save_by_best_valid and epoch-best_valid_epoch > self.config.early_stop_epoch:
+                    if self.config.model_save_by_best_valid and epoch+1-best_valid_epoch > self.config.early_stop_epoch:
                         break
 
                     print("time per epoch is %.2f min"%((time.time()-start_time)/60.0))
@@ -112,6 +111,8 @@ class Classifier:
             print(("\nbest valid acc: %.4f")%best_valid_acc)
             metrics = self.trainer.evaluate(self.val_set, model, sess)
             print(('*'*10 + 'test acc: %.4f')%metrics["acc"])
+            
+            writer.close()
 
 
     def test(self):

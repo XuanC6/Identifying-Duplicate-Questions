@@ -1,4 +1,10 @@
+import os
+import sys
 import tensorflow as tf
+
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+utils_dir = os.path.join(base_dir, "utils")
+sys.path.append(utils_dir)
 
 
 class BiRNNModel:
@@ -37,7 +43,7 @@ class BiRNNModel:
             embedding = tf.get_variable(
                 name,
                 [self.num_words, self.wordvec_size],
-                initializer = tf.random_uniform_initializer(-0.05, 0.05),
+                initializer = tf.random_uniform_initializer(-0.5, 0.5),
                 trainable = self.config.word_embedding_trainable)
             return embedding
         
@@ -56,10 +62,12 @@ class BiRNNModel:
         def create_rnncells():
             rnncells = [None for _ in range(4)]
             for i in range(4):
-                 _rnncell = tf.nn.rnn_cell.GRUCell(num_units=self.config.num_units,
+#                 _rnncell = tf.nn.rnn_cell.GRUCell(num_units=self.config.num_units,
+#                                                   kernel_initializer=self.rnn_initializer())
+#                 rnncells[i] = tf.nn.rnn_cell.DropoutWrapper(_rnncell,
+#                                                             output_keep_prob=self.dropout)
+                 rnncells[i] = tf.nn.rnn_cell.GRUCell(num_units=self.config.num_units,
                                                    kernel_initializer=self.rnn_initializer())
-                 rnncells[i] = tf.nn.rnn_cell.DropoutWrapper(_rnncell,
-                                                             output_keep_prob=self.dropout)
             return rnncells
 
         rnncells = create_rnncells()
@@ -71,7 +79,7 @@ class BiRNNModel:
             outputs2, state2 = tf.nn.bidirectional_dynamic_rnn(rnncells[2], rnncells[3], inputs[1],
                                                                sequence_length = self.length2,
                                                                dtype=tf.float32)
-        
+
         fw1, bw1 = state1
         fw2, bw2 = state2
         rnn_output = tf.concat(values = [fw1, bw1, fw2, bw2], axis = -1)
@@ -98,12 +106,14 @@ class BiRNNModel:
                                                        logits = tf.squeeze(logits))
 
         # put more weight on samples with label 1
-        alpha = 0.266
-        weights = tf.exp((tf.to_float(self.labels)-0.5)*2*alpha, name="weights")
-        weighted_loss = tf.multiply(weights, loss, name="weighted_loss")
-        self.loss = tf.reduce_sum(weighted_loss)/tf.reduce_sum(weights)
+#        alpha = 0.266
+#        weights = tf.exp((tf.to_float(self.labels)-0.5)*2*alpha, name="weights")
+#        weighted_loss = tf.multiply(weights, loss, name="weighted_loss")
+#        self.loss = tf.reduce_sum(weighted_loss)/tf.reduce_sum(weights)
+        
+        # normal loss
+        self.loss = tf.reduce_mean(loss)
 
-#        self.loss = tf.reduce_mean(loss)
         result_options = tf.concat([1-scores, scores], axis = 1)
         self.predicts = tf.argmax(result_options, axis = 1)
         self.probabilities = tf.reduce_max(result_options, axis = 1)
@@ -113,6 +123,15 @@ class BiRNNModel:
         self.learning_rate = tf.Variable(self.config.learning_rate, trainable=False)
         optimizer = self.config.optimizer(self.learning_rate)
         grads_and_vars = optimizer.compute_gradients(self.loss)
-        capped_gvs = [(tf.clip_by_value(grad, -self.config.threshold, self.config.threshold), var)
-                        for grad, var in grads_and_vars]
+        with tf.variable_scope("clip_grad"):
+            capped_gvs = [(tf.clip_by_value(grad, -self.config.threshold, self.config.threshold), var)
+                            for grad, var in grads_and_vars]
         self.train_op = optimizer.apply_gradients(capped_gvs, name="train")
+
+
+
+class BiPMModel(BiRNNModel):
+    pass
+
+
+
