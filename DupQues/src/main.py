@@ -57,6 +57,7 @@ class Classifier:
                 saver.restore(sess, self.config.model_path)
             
             writer = tf.summary.FileWriter(self.config.log_graph_dir, sess.graph)
+            writer.close()
 
             with open(self.config.log_train_acc_path, "w") as train_acc_fp,\
                 open(self.config.log_valid_acc_path, "w") as valid_acc_fp:
@@ -112,8 +113,6 @@ class Classifier:
             print(("\nbest valid acc: %.4f")%best_valid_acc)
             metrics = self.trainer.evaluate(self.val_set, model, sess)
             print(('*'*10 + 'test acc: %.4f')%metrics["acc"])
-            
-            writer.close()
 
 
     def test(self):
@@ -139,8 +138,8 @@ class Classifier:
             print(("FN: %d")%metrics["FN"])
 
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     classifier = Classifier()
 
     if len(sys.argv) > 1:

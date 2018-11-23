@@ -121,6 +121,9 @@ class Trainer:
 
             predicts, probs, labels = self._evaluate_one_minibatch(step, model, sess)
 
+#            if step==1600:
+#                print(probs)
+
             for pred, label in zip(predicts, labels):
 #            for prob, label in zip(probs, labels):
 #                pred = 0
@@ -150,10 +153,16 @@ class Trainer:
         
         metrics["acc"] = num_correct/total_data
         
-        precision = predict_1_correct/predict_1
+        if not predict_1:
+            precision = 0
+        else:
+            precision = predict_1_correct/predict_1
         recall = predict_1_correct/true_1
         metrics["precision"] = precision
         metrics["recall"] = recall
-        metrics["F1 score"] = 2*precision*recall/(precision + recall)
+        if not precision and not recall:
+            metrics["F1 score"] = 0
+        else:
+            metrics["F1 score"] = 2*precision*recall/(precision + recall)
         
         return metrics
