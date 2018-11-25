@@ -25,7 +25,6 @@ def Attentive_Matching_Layer(P, Q, P_length, Q_length, shape, initializer=None,
         mask_matching: A tensor with shape [batch_size, num_steps, out_dim]
     """
     batch_size, num_steps, in_dim, out_dim = shape
-
     with tf.variable_scope(name):
         PW = tf.get_variable(name="Perspective_Weight", shape=[out_dim, in_dim],
                              initializer=initializer)
@@ -35,7 +34,7 @@ def Attentive_Matching_Layer(P, Q, P_length, Q_length, shape, initializer=None,
         Q_normalized = tf.nn.l2_normalize(Q, axis=2)
         
         # [batch_size, num_steps(P), num_steps(Q), in_dim]
-        Similarity = tf.multiply(tf.expand_dims(P_normalized, 2), 
+        Similarity = tf.multiply(tf.expand_dims(P_normalized, 2),
                                  tf.expand_dims(Q_normalized, 1))
         # [batch_size, num_steps(P), num_steps(Q)]
         similarity = tf.reduce_sum(Similarity, axis=-1)
@@ -54,8 +53,8 @@ def Attentive_Matching_Layer(P, Q, P_length, Q_length, shape, initializer=None,
 
         # [batch_size, num_steps(P), num_steps(Q)]
         weights = tf.div(mask_similarity,
-                         tf.reduce_sum(mask_similarity, axis=1, keepdims=True))
-                         # [batch_size, 1, num_steps(Q)]
+                         tf.reduce_sum(mask_similarity, axis=2, keepdims=True))
+                         # [batch_size, num_steps(P), 1]
 
         # [batch_size, num_steps(P), num_steps(Q)]*[batch_size, num_steps(Q), in_dim]
         # = [batch_size, num_steps(P), in_dim]
@@ -84,23 +83,20 @@ def Full_Matching_Layer(P, Q_state, P_length, shape, initializer=None, name=None
         mask_matching: A tensor with shape [batch_size, num_steps, out_dim]
     """
     batch_size, num_steps, in_dim, out_dim = shape
-
     with tf.variable_scope(name):
         PW = tf.get_variable(name="Perspective_Weight", shape=[out_dim, in_dim],
                              initializer=initializer)
 
-        # [batch_size, num_steps, out_dim, in_dim]
+        # [batch_size, num_steps(P), out_dim, in_dim]
         Wv1 = tf.nn.l2_normalize(tf.multiply(tf.expand_dims(P, 2), PW), axis=-1)
         # [batch_size, out_dim, in_dim]
         Wv2 = tf.nn.l2_normalize(tf.multiply(tf.expand_dims(Q_state, 1), PW), axis=-1)
 
-        # [batch_size, num_steps, out_dim]
+        # [batch_size, num_steps(P), out_dim]
         result = tf.reduce_sum(tf.multiply(Wv1, tf.expand_dims(Wv2, 1)), axis=-1)
         mask_matching = _mask_result(result, batch_size, num_steps, out_dim, P_length)
 
     return mask_matching
-
-
 
 
 #def Attentive_Matching_Layer2(P, Q, P_length, Q_length, shape,
@@ -162,7 +158,8 @@ def Full_Matching_Layer(P, Q_state, P_length, shape, initializer=None, name=None
 #            weighted_sum = tf.matmul(tf.expand_dims(weights, 1), Q)
 #            # [batch_size, 1, 2*in_dim]
 #            result[i] =tf.concat(values=[Pi, weighted_sum], axis=-1) 
-#
+
+
 #        # [batch_size, num_steps, 2*in_dim]
 #        matching_result = tf.concat(values=result, axis = 1)
 #        # (1, num_steps, 1)
