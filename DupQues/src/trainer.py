@@ -44,7 +44,7 @@ class Trainer:
                     model.length1: length1,
                     model.length2: length2,
                     model.labels: labels,
-                    model.dropout: 1-model.config.dropout,
+                    model.keep_prob: 1-model.config.dropout,
                     model.training: True
                     }
                 )
@@ -68,7 +68,8 @@ class Trainer:
 
             if percent//20 > output_iter:
                 output_iter = percent//20
-                print('train loss: %.4f at %.2f%% of train set.\r'%(loss, percent))
+                if output_iter < 5:
+                    print('train loss: %.4f at %.2f%% of train set.\r'%(loss, percent))
 
             sstr = 'train loss: %.4f at %.2f%% of train set.\r'%(loss, percent)
             sys.stdout.write(sstr)
@@ -96,7 +97,7 @@ class Trainer:
                         model.length1: length1,
                         model.length2: length2,
                         model.labels: labels,
-                        model.dropout: 1.0
+                        model.keep_prob: 1.0
                         }
                 )
         return (predicts, probs, labels)

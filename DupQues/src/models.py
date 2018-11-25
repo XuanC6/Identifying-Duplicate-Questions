@@ -38,7 +38,7 @@ class BiRNNModel:
         self.length1 = tf.placeholder(tf.int32, [dim1], name="length1")
         self.length2 = tf.placeholder(tf.int32, [dim1], name="length2")
         self.labels = tf.placeholder(tf.int32, [dim1], name="labels")
-        self.dropout = tf.placeholder(tf.float32, [], name="dropout")
+        self.keep_prob = tf.placeholder(tf.float32, [], name="keep_prob")
         self.training = tf.placeholder_with_default(False, [], name="training")
 
 
@@ -61,20 +61,21 @@ class BiRNNModel:
         return [vec_input1, vec_input2]
 
 
-    def _run_rnn(self, inputs):
-        # calculate outputs
-        def create_rnncells():
-            rnncells = [None for _ in range(4)]
-            for i in range(4):
-#                 _rnncell = tf.nn.rnn_cell.GRUCell(num_units=self.config.num_units,
-#                                                   kernel_initializer=self.rnn_initializer())
-#                 rnncells[i] = tf.nn.rnn_cell.DropoutWrapper(_rnncell,
-#                                                             output_keep_prob=self.dropout)
-                rnncells[i] = tf.nn.rnn_cell.GRUCell(num_units=self.config.rnn_units,
-                                                     kernel_initializer=self.rnn_initializer())
-            return rnncells
+    def _create_rnncells(self, n, num_units):
+        rnncells = [None for _ in range(n)]
+        for i in range(n):
+             _rnncell = tf.nn.rnn_cell.GRUCell(num_units=num_units,
+                                               kernel_initializer=self.rnn_initializer())
+             rnncells[i] = tf.nn.rnn_cell.DropoutWrapper(_rnncell,
+                                                         output_keep_prob=self.keep_prob)
+#            rnncells[i] = tf.nn.rnn_cell.GRUCell(num_units=num_units,
+#                                                 kernel_initializer=self.rnn_initializer())
+        return rnncells
 
-        rnncells = create_rnncells()
+
+    def _run_rnn(self, inputs):
+        # calculate output
+        rnncells = self._create_rnncells(4, self.config.rnn_units)
         with tf.variable_scope("Bidirectional_RNN1"):
             _, state1 = tf.nn.bidirectional_dynamic_rnn(rnncells[0], rnncells[1], inputs[0],
                                                         sequence_length=self.length1,
@@ -106,23 +107,35 @@ class BiRNNModel:
             logits = tf.layers.dense(hidden_layer, 1,
                                      kernel_initializer = self.initializer(),
                                      name = 'logits')
-    
+
             self.scores = tf.nn.sigmoid(logits, name="predict_probs")
-            loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(self.labels),
-                                                           logits=tf.squeeze(logits))
-    
-            # put more weight on samples with label 1
-            alpha = 0.266
-            weights = tf.exp((tf.to_float(self.labels)-0.5)*2*alpha, name="weights")
-            weighted_loss = tf.multiply(weights, loss, name="weighted_loss")
-            self.loss = tf.reduce_sum(weighted_loss)/tf.reduce_sum(weights)
+            float_labels=tf.to_float(self.labels)
+            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-6, 1-1e-6)
+            loss = -tf.multiply(float_labels, tf.log(clipped_scores))-\
+                    tf.multiply((1.0-float_labels), tf.log(1.0-clipped_scores))
 
-    #        # normal loss
-    #        self.loss = tf.reduce_mean(loss)
+#            loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(self.labels),
+#                                                           logits=tf.squeeze(logits))
 
+#            self.scores = tf.nn.softmax(logits, name="predict_probs")
+#            loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=tf.one_hot(self.labels, 2),
+#                                                              logits=logits)
+
+#            # put more weight on samples with label 1
+#            alpha = 0.266
+#            weights = tf.exp((tf.to_float(self.labels)-0.5)*2*alpha, name="weights")
+#            weighted_loss = tf.multiply(weights, loss, name="weighted_loss")
+#            self.loss = tf.reduce_sum(weighted_loss)/tf.reduce_sum(weights)
+
+            # normal loss
+            self.loss = tf.reduce_mean(loss)
+            # sigmoid
             result_options = tf.concat([1-self.scores, self.scores], axis=1)
             self.predicts = tf.argmax(result_options, axis = 1)
             self.probabilities = tf.reduce_max(result_options, axis=1)
+#            # softmax
+#            self.predicts = tf.argmax(self.scores, axis = 1)
+#            self.probabilities = tf.reduce_max(self.scores, axis=1)
 
 
     def add_train_op(self):
@@ -153,11 +166,10 @@ class BiPMModel2(BiRNNModel):
 
 
     def _matching(self, **inputs):
-        # [batch_size, num_steps, rnn_units]
-        
         P_outputs = inputs["P_outputs"]
         Q_outputs = inputs["Q_outputs"]
         
+        # [batch_size, num_steps, rnn_units]
         P_fw, P_bw = P_outputs
         Q_fw, Q_bw = Q_outputs
 
@@ -202,34 +214,25 @@ class BiPMModel2(BiRNNModel):
                                                         sequence_length=self.length2,
 #                                                        swap_memory=True,
                                                         dtype=tf.float32)
-        # [batch_size, num_steps, 2*ag_rnn_units]
+        # [batch_size, num_steps, ag_rnn_units]
         fw1, bw1 = state1
         fw2, bw2 = state2
-        # [batch_size, 8*ag_rnn_units]
+        # [batch_size, 4*ag_rnn_units]
         return tf.concat(values=[fw1, bw1, fw2, bw2], axis=-1)
 
 
     def _run_rnn(self, inputs):
         # calculate outputs
-        def create_rnncells(n, num_units):
-            rnncells = [None for _ in range(n)]
-            for i in range(n):
-                rnncells[i] = tf.nn.rnn_cell.GRUCell(num_units=num_units,
-                                                     kernel_initializer=self.rnn_initializer())
-            return rnncells
-
-        cr_rnncells = create_rnncells(4, self.config.rnn_units)
-        ag_rnncells = create_rnncells(4, self.config.ag_rnn_units)
+        cr_rnncells = self._create_rnncells(4, self.config.rnn_units)
+        ag_rnncells = self._create_rnncells(4, self.config.ag_rnn_units)
 
         outputs1, outputs2, states1, states2 = self._context_representation(cr_rnncells, inputs)
         mask_matching_PQ, mask_matching_QP = self._matching(P_outputs=outputs1, Q_outputs=outputs2, 
                                                             P_states=states1, Q_states=states2)
         rnn_output = self._aggregation(ag_rnncells, mask_matching_PQ, mask_matching_QP)
-        
 #        print(outputs1[0].shape)
 #        print(mask_matching_PQ.shape)
 #        print(rnn_output.shape)
-        
         return rnn_output
 
 
@@ -237,15 +240,15 @@ class BiPMModel2(BiRNNModel):
 class BiPMModel3(BiPMModel2):
 
     def _matching(self, **inputs):
-        # [batch_size, num_steps, rnn_units]
-        
         P_outputs = inputs["P_outputs"]
         Q_outputs = inputs["Q_outputs"]
         P_states = inputs["P_states"]
         Q_states = inputs["Q_states"]
         
+        # [batch_size, num_steps, rnn_units]
         P_fw, P_bw = P_outputs
         Q_fw, Q_bw = Q_outputs
+        # [batch_size, rnn_units]
         P_state_fw, P_state_bw = P_states
         Q_state_fw, Q_state_bw = Q_states
 
@@ -277,7 +280,8 @@ class BiPMModel3(BiPMModel2):
         mask_matching_QP = tf.concat(values=[mask_matching_QP_fw, mask_matching_QP_bw], axis=-1)
         
         return mask_matching_PQ, mask_matching_QP
-    
-    
-    
-    
+
+
+
+
+

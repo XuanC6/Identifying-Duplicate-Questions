@@ -59,7 +59,7 @@ class Configuration:
         self.num_perspectives = 20
         self.rnn_units = 200
         self.ag_rnn_units = 100
-        self.mlp_hidden_nodes = [400, 400, 200]
+        self.mlp_hidden_nodes = [400, 400, 400]
 
         self.batch_size = 32
         self.num_steps = 35
@@ -76,11 +76,11 @@ class Configuration:
         '''
         training parameters
         '''
+        self.dropout = 0.1
         self.lr_decay = True
-        self.lr_decay_epoch = 5
+        self.lr_decay_epoch = 4
         self.lr_decay_rate = 0.9
         self.learning_rate = 0.001
-        self.dropout = 0.15
 
         self.num_epoch = 40
         self.early_stop_epoch = 10
