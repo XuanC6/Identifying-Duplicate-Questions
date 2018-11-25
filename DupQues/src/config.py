@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 import os
 import tensorflow as tf
-from model import BiRNNModel
+from models import BiRNNModel, BiPMModel2, BiPMModel3
 
 
 class Configuration:
@@ -21,6 +22,7 @@ class Configuration:
         # cd ../../
         base_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         # cd data
+
         data_dir = os.path.join(base_dir, "data")
         # cd data/train
         train_dir = os.path.join(data_dir, "train")
@@ -43,17 +45,29 @@ class Configuration:
 
         # id_word path
         self.id_word_path = os.path.join(data_dir, id_word_name)
-        
         # wordvecs path
         self.wordvecs_path = os.path.join(data_dir, wordvecs_name)
 
         '''
         model parameters
         '''
-        self.model = BiRNNModel
-        self.num_steps = 35
+##        self.model = BiRNNModel
+#        self.model = BiPMModel2
+##        self.rnn_units = 200
+##        self.mlp_hidden_nodes = [800, 800, 600]
+#        self.rnn_units = 200
+#        self.mlp_hidden_nodes = [1600, 1200, 800]
+
+        self.model = BiPMModel3
+        self.num_perspectives = 20
+        self.rnn_units = 100
+        self.ag_rnn_units = 100
+        self.mlp_hidden_nodes = [400, 400, 400]
+
         self.batch_size = 32
+        self.num_steps = 35
         self.wordvec_size = 100
+
         self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
         # number of hidden nodes in rnn cell
         self.num_units = 200
@@ -61,7 +75,7 @@ class Configuration:
         self.mlp_hidden_nodes = [800, 800, 600]
 
         self.word_embedding_pretrained = True
-        self.word_embedding_trainable = False
+        self.word_embedding_trainable = True
 
         self.initializer = tf.contrib.layers.variance_scaling_initializer
         self.rnn_initializer = tf.glorot_uniform_initializer
@@ -70,11 +84,11 @@ class Configuration:
         '''
         training parameters
         '''
+        self.dropout = 0.1
         self.lr_decay = True
-        self.lr_decay_epoch = 6
+        self.lr_decay_epoch = 4
         self.lr_decay_rate = 0.9
         self.learning_rate = 0.001
-        self.dropout = 0.35
 
         self.num_epoch = 40
         self.early_stop_epoch = 10
@@ -86,22 +100,22 @@ class Configuration:
         self.shuffle_data = True
 
         '''
-        model and log paths
+        log paths
         '''
-        # model path
+        self.log_dir = os.path.join(base_dir, "logs")
+
         self.model_name = self.model.__name__
-        self.model_dir = os.path.join(base_dir, "model")
+        self.model_dir = os.path.join(self.log_dir, "model")
         self.model_path = os.path.join(self.model_dir, self.model_name)
 
-        # log path
-        self.log_dir = os.path.join(base_dir, "logs")
+        self.log_graph_dir = os.path.join(self.log_dir, "graph")
         self.log_train_dir = os.path.join(self.log_dir, "train")
         self.log_train_acc_path = os.path.join(self.log_train_dir, self.model_name+".train.acc.log")
         self.log_valid_acc_path = os.path.join(self.log_train_dir, self.model_name+".valid.acc.log")
 
-        if not os.path.exists(self.model_dir):
-            os.mkdir(self.model_dir)
         if not os.path.exists(self.log_dir):
             os.mkdir(self.log_dir)
+        if not os.path.exists(self.model_dir):
+            os.mkdir(self.model_dir)
         if not os.path.exists(self.log_train_dir):
             os.mkdir(self.log_train_dir)

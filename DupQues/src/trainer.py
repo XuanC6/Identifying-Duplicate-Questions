@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import random
 
@@ -43,11 +44,10 @@ class Trainer:
                     model.length1: length1,
                     model.length2: length2,
                     model.labels: labels,
-                    model.dropout: 1-model.config.dropout,
+                    model.keep_prob: 1-model.config.dropout,
                     model.training: True
                     }
                 )
-
         return loss
 
 
@@ -67,13 +67,13 @@ class Trainer:
 
             if percent//20 > output_iter:
                 output_iter = percent//20
-                print('train loss: %.4f at %.2f%% of train set.\r'%(loss, percent))
+                if output_iter < 5:
+                    print('train loss: %.4f at %.2f%% of train set.\r'%(loss, percent))
 
             sstr = 'train loss: %.4f at %.2f%% of train set.\r'%(loss, percent)
             sys.stdout.write(sstr)
             # for linux
             sys.stdout.flush()
-
         return loss
 
 
@@ -95,7 +95,7 @@ class Trainer:
                         model.length1: length1,
                         model.length2: length2,
                         model.labels: labels,
-                        model.dropout: 1.0
+                        model.keep_prob: 1.0
                         }
                 )
         return (predicts, probs, labels)
@@ -120,7 +120,14 @@ class Trainer:
 
             predicts, probs, labels = self._evaluate_one_minibatch(step, model, sess)
 
+#            if step==1600:
+#                print(probs)
+
             for pred, label in zip(predicts, labels):
+#            for prob, label in zip(probs, labels):
+#                pred = 0
+#                if prob > 0.37:
+#                    pred = 1
                 if pred == label:
                     num_correct += 1
                 if pred == label == 1:
@@ -145,10 +152,16 @@ class Trainer:
         
         metrics["acc"] = num_correct/total_data
         
-        precision = predict_1_correct/predict_1
+        if not predict_1:
+            precision = 0
+        else:
+            precision = predict_1_correct/predict_1
         recall = predict_1_correct/true_1
         metrics["precision"] = precision
         metrics["recall"] = recall
-        metrics["F1 score"] = 2*precision*recall/(precision + recall)
+        if not precision and not recall:
+            metrics["F1 score"] = 0
+        else:
+            metrics["F1 score"] = 2*precision*recall/(precision + recall)
         
         return metrics

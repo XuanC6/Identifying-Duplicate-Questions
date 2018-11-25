@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import time
 import numpy as np
 import sys, os, glob
@@ -9,7 +10,7 @@ from config import Configuration
 
 
 class Classifier:
-    
+
     def __init__(self):
         self.config = Configuration()
         self.reader = Reader(self.config)
@@ -40,9 +41,11 @@ class Classifier:
                 word_embedding = np.loadtxt(self.config.wordvecs_path, dtype=np.float32)
                 with tf.variable_scope("Embed", reuse=True):
                     embedding1 = tf.get_variable("embedding1", 
-                                                 [self.config.num_words, self.config.wordvec_size])
+                                                 [self.config.num_words,
+                                                  self.config.wordvec_size])
                     embedding2 = tf.get_variable("embedding2", 
-                                                 [self.config.num_words, self.config.wordvec_size])
+                                                 [self.config.num_words,
+                                                  self.config.wordvec_size])
                     e1_assign = embedding1.assign(word_embedding)
                     e2_assign = embedding2.assign(word_embedding)
             
@@ -51,30 +54,34 @@ class Classifier:
             best_valid_acc = 0.0
             best_valid_epoch = 0
 
-#Epoch 24, Learning Rate: 0.0002
-#best valid acc now: 0.8199
-
             if restore:
                 print("Continue Training")
                 saver.restore(sess, self.config.model_path)
 
+            writer = tf.summary.FileWriter(self.config.log_graph_dir, sess.graph)
+            writer.close()
+
             with open(self.config.log_train_acc_path, "w") as train_acc_fp,\
-                open(self.config.log_valid_acc_path, "w") as valid_acc_fp:
+                 open(self.config.log_valid_acc_path, "w") as valid_acc_fp:
 
                 for epoch in range(self.config.num_epoch):
                     start_time = time.time()
 
                     # whether decay lr
                     if self.config.lr_decay and epoch+1 > self.config.lr_decay_epoch:
-                        lr_decay = self.config.lr_decay_rate**max(epoch+1-self.config.lr_decay_epoch, 0.0)
-                        sess.run(tf.assign(model.learning_rate, self.config.learning_rate*lr_decay))
+                        lr_decay = self.config.lr_decay_rate**\
+                                    max(epoch+1-self.config.lr_decay_epoch, 0.0)
+                        sess.run(tf.assign(model.learning_rate,
+                                           self.config.learning_rate*lr_decay))
 
                     # train one epoch
                     print('='*40)
-                    print(("Epoch %d, Learning Rate: %.4f")%(epoch+1, sess.run(model.learning_rate)))
+                    print(("Epoch %d, Learning Rate: %.6f")%(epoch+1,
+                                                             sess.run(model.learning_rate)))
                     print(("best valid acc now: %.4f") % best_valid_acc)
                     print(("best valid epoch now: %d") % best_valid_epoch)
-                    loss = self.trainer.train_one_epoch(self.train_set, model, sess, self.config.shuffle_data)
+                    loss = self.trainer.train_one_epoch(self.train_set, model,
+                                                        sess, self.config.shuffle_data)
                     print(('\ntrain loss: %.4f') % loss)
 
                     # evaluate on train data every 5 epoches
@@ -96,11 +103,13 @@ class Classifier:
                             saver.save(sess, self.config.model_path)
 
                     # save model if not save_by_best_valid
-                    if not self.config.model_save_by_best_valid and (epoch+1)%self.config.model_save_period==0:
+                    if not self.config.model_save_by_best_valid and \
+                        (epoch+1)%self.config.model_save_period==0:
                         saver.save(sess, self.config.model_path)
 
                     # break if save_by_best_valid
-                    if self.config.model_save_by_best_valid and epoch-best_valid_epoch > self.config.early_stop_epoch:
+                    if self.config.model_save_by_best_valid and \
+                        epoch+1-best_valid_epoch > self.config.early_stop_epoch:
                         break
 
                     print("time per epoch is %.2f min"%((time.time()-start_time)/60.0))
@@ -135,6 +144,7 @@ class Classifier:
             print(("TN: %d")%metrics["TN"])
             print(("FP: %d")%metrics["FP"])
             print(("FN: %d")%metrics["FN"])
+
 
 
 if __name__ == "__main__":

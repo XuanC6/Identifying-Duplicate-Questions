@@ -30,7 +30,7 @@ word_index = {}
 word_counts = defaultdict(lambda: 0)
 
 signs = '?.？。!！ '
-split_signs = r'\s*[—…⚡；？！。，、″¨“”：（）《》【】\\!"#$%&()*+,-./:;<=>?@[\]^_`{|}~\t\n\s]\s*'
+split_signs = r'\s*[—…⚡；？！。，、″¨“”：（）《》【】\\!"#$%&()*+,-./:;<=>?@[\]^_`{|}~\s]\s*'
 
 
 # In[read data]
@@ -198,10 +198,10 @@ with open(os.path.join(glove_dir, "glove.6B.100d.txt"), "r", encoding='UTF-8') a
 print('Found %s word vectors.'%len(embeddings_index))
 
 embedding_dim = 100
-embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
-#embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
-#embedding_matrix = (embedding_matrix-0.5)/10
-#embedding_matrix[0] = np.zeros(embedding_dim)
+#embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
+embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
+embedding_matrix = (embedding_matrix-0.5)
+embedding_matrix[0] = np.zeros(embedding_dim)
 
 for word, i in word_index.items():
     embedding_vector = embeddings_index.get(word)
