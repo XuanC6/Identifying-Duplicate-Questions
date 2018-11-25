@@ -35,6 +35,7 @@ split_signs = r'\s*[—…⚡；？！。，、″¨“”：（）《》【】\
 
 # In[read data]
 # word list -> index list
+# meanwhile, count words
 def word2idx(q: list) -> list:
     q_seq = []
 
@@ -107,7 +108,7 @@ print('Found %s unique tokens.' % len(word_index))
 max_len = 35
 training_samples = 380000
 
-def pad_seqs(seqs, maxlen):
+def pad_seqs(seqs: list, maxlen: int)->np.array:
     for i in range(len(seqs)):
         length = len(seqs[i])
         if length > maxlen:
@@ -208,6 +209,9 @@ for word, i in word_index.items():
         embedding_matrix[i] = embedding_vector
 
 np.savetxt(data_dir+"wordvecs.txt", embedding_matrix)
+
+
+
 
 
 
