@@ -48,7 +48,6 @@ class Trainer:
                     model.training: True
                     }
                 )
-
         return loss
 
 
@@ -75,7 +74,6 @@ class Trainer:
             sys.stdout.write(sstr)
             # for linux
             sys.stdout.flush()
-
         return loss
 
 

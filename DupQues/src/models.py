@@ -174,43 +174,51 @@ class BiPMModel2(BiRNNModel):
         Q_fw, Q_bw = Q_outputs
 
         def create_matching_layer(P_input, Q_input, P_length, Q_length, name=None):
-            mask_matching = Attentive_Matching_Layer(P_input, Q_input, P_length, Q_length,
-                                                     shape=[self.batch_size, self.num_steps, 
-                                                            self.config.rnn_units, 
-                                                            self.config.num_perspectives],
-                                                     initializer=self.initializer(),
-                                                     name=name)
-            return mask_matching
+            matching = Attentive_Matching_Layer(P_input, Q_input, P_length, Q_length,
+                                                shape=[self.batch_size, self.num_steps, 
+                                                       self.config.rnn_units, 
+                                                       self.config.num_perspectives],
+                                                initializer=self.initializer(),
+                                                name=name)
+            return matching
 
         with tf.variable_scope("Matching_Layer_PQ"):
             # [batch_size, num_steps, num_perspectives]
-            mask_matching_PQ_fw = create_matching_layer(P_fw, Q_fw,
-                                                        self.length1, self.length2, "AM_PQ_fw")
-            mask_matching_PQ_bw = create_matching_layer(P_bw, Q_bw, 
-                                                        self.length1, self.length2, "AM_PQ_bw")
+            matching_PQ_fw = create_matching_layer(P_fw, Q_fw,
+                                                   self.length1, self.length2, "AM_PQ_fw")
+            matching_PQ_bw = create_matching_layer(P_bw, Q_bw, 
+                                                   self.length1, self.length2, "AM_PQ_bw")
+            matching_PQ_fw = tf.layers.dropout(matching_PQ_fw, self.config.dropout,
+                                               training=self.training)
+            matching_PQ_bw = tf.layers.dropout(matching_PQ_bw, self.config.dropout,
+                                               training=self.training)
 
         with tf.variable_scope("Matching_Layer_QP"):
             # [batch_size, num_steps, num_perspectives]
-            mask_matching_QP_fw = create_matching_layer(Q_fw, P_fw,
-                                                        self.length2, self.length1, "AM_QP_fw")
-            mask_matching_QP_bw = create_matching_layer(Q_bw, P_bw,
-                                                        self.length2, self.length1, "AM_QP_bw")
+            matching_QP_fw = create_matching_layer(Q_fw, P_fw,
+                                                   self.length2, self.length1, "AM_QP_fw")
+            matching_QP_bw = create_matching_layer(Q_bw, P_bw,
+                                                   self.length2, self.length1, "AM_QP_bw")
+            matching_QP_fw = tf.layers.dropout(matching_QP_fw, self.config.dropout,
+                                               training=self.training)
+            matching_QP_bw = tf.layers.dropout(matching_QP_bw, self.config.dropout,
+                                               training=self.training)
 
         # [batch_size, num_steps, 2*num_perspectives]
-        mask_matching_PQ = tf.concat(values=[mask_matching_PQ_fw, mask_matching_PQ_bw], axis=-1)
-        mask_matching_QP = tf.concat(values=[mask_matching_QP_fw, mask_matching_QP_bw], axis=-1)
+        matching_PQ = tf.concat(values=[matching_PQ_fw, matching_PQ_bw], axis=-1)
+        matching_QP = tf.concat(values=[matching_QP_fw, matching_QP_bw], axis=-1)
         
-        return mask_matching_PQ, mask_matching_QP
+        return matching_PQ, matching_QP
 
 
-    def _aggregation(self, rnncells, mask_matching_PQ, mask_matching_QP):
+    def _aggregation(self, rnncells, matching_PQ, matching_QP):
         with tf.variable_scope("Aggregation_Layer1"):
-            _, state1 = tf.nn.bidirectional_dynamic_rnn(rnncells[0], rnncells[1], mask_matching_PQ,
+            _, state1 = tf.nn.bidirectional_dynamic_rnn(rnncells[0], rnncells[1], matching_PQ,
                                                         sequence_length=self.length1,
 #                                                        swap_memory=True,
                                                         dtype=tf.float32)
         with tf.variable_scope("Aggregation_Layer2"):
-            _, state2 = tf.nn.bidirectional_dynamic_rnn(rnncells[2], rnncells[3], mask_matching_QP,
+            _, state2 = tf.nn.bidirectional_dynamic_rnn(rnncells[2], rnncells[3], matching_QP,
                                                         sequence_length=self.length2,
 #                                                        swap_memory=True,
                                                         dtype=tf.float32)
@@ -227,9 +235,9 @@ class BiPMModel2(BiRNNModel):
         ag_rnncells = self._create_rnncells(4, self.config.ag_rnn_units)
 
         outputs1, outputs2, states1, states2 = self._context_representation(cr_rnncells, inputs)
-        mask_matching_PQ, mask_matching_QP = self._matching(P_outputs=outputs1, Q_outputs=outputs2, 
-                                                            P_states=states1, Q_states=states2)
-        rnn_output = self._aggregation(ag_rnncells, mask_matching_PQ, mask_matching_QP)
+        matching_PQ, matching_QP = self._matching(P_outputs=outputs1, Q_outputs=outputs2, 
+                                                  P_states=states1, Q_states=states2)
+        rnn_output = self._aggregation(ag_rnncells, matching_PQ, matching_QP)
 #        print(outputs1[0].shape)
 #        print(mask_matching_PQ.shape)
 #        print(rnn_output.shape)
@@ -253,33 +261,41 @@ class BiPMModel3(BiPMModel2):
         Q_state_fw, Q_state_bw = Q_states
 
         def create_matching_layer(P_input, Q_input, P_length, name=None):
-            mask_matching = Full_Matching_Layer(P_input, Q_input, P_length,
-                                                shape=[self.batch_size, self.num_steps, 
-                                                       self.config.rnn_units, 
-                                                       self.config.num_perspectives],
-                                                initializer=self.initializer(),
-                                                name=name)
-            return mask_matching
+            matching = Full_Matching_Layer(P_input, Q_input, P_length,
+                                           shape=[self.batch_size, self.num_steps, 
+                                                  self.config.rnn_units, 
+                                                  self.config.num_perspectives],
+                                            initializer=self.initializer(),
+                                            name=name)
+            return matching
 
         with tf.variable_scope("Matching_Layer_PQ"):
             # [batch_size, num_steps, num_perspectives]
-            mask_matching_PQ_fw = create_matching_layer(P_fw, Q_state_fw, 
-                                                        self.length1, "FM_PQ_fw")
-            mask_matching_PQ_bw = create_matching_layer(P_bw, Q_state_bw, 
-                                                        self.length1, "FM_PQ_bw")
+            matching_PQ_fw = create_matching_layer(P_fw, Q_state_fw, 
+                                                   self.length1, "FM_PQ_fw")
+            matching_PQ_bw = create_matching_layer(P_bw, Q_state_bw, 
+                                                   self.length1, "FM_PQ_bw")
+            matching_PQ_fw = tf.layers.dropout(matching_PQ_fw, self.config.dropout,
+                                               training=self.training)
+            matching_PQ_bw = tf.layers.dropout(matching_PQ_bw, self.config.dropout,
+                                               training=self.training)
 
         with tf.variable_scope("Matching_Layer_QP"):
             # [batch_size, num_steps, num_perspectives]
-            mask_matching_QP_fw = create_matching_layer(Q_fw, P_state_fw, 
-                                                        self.length2, "FM_QP_fw")
-            mask_matching_QP_bw = create_matching_layer(Q_bw, P_state_bw, 
-                                                        self.length2, "FM_QP_bw")
+            matching_QP_fw = create_matching_layer(Q_fw, P_state_fw, 
+                                                   self.length2, "FM_QP_fw")
+            matching_QP_bw = create_matching_layer(Q_bw, P_state_bw, 
+                                                   self.length2, "FM_QP_bw")
+            matching_QP_fw = tf.layers.dropout(matching_QP_fw, self.config.dropout,
+                                               training=self.training)
+            matching_QP_bw = tf.layers.dropout(matching_QP_bw, self.config.dropout,
+                                               training=self.training)
 
         # [batch_size, num_steps, 2*num_perspectives]
-        mask_matching_PQ = tf.concat(values=[mask_matching_PQ_fw, mask_matching_PQ_bw], axis=-1)
-        mask_matching_QP = tf.concat(values=[mask_matching_QP_fw, mask_matching_QP_bw], axis=-1)
+        matching_PQ = tf.concat(values=[matching_PQ_fw, matching_PQ_bw], axis=-1)
+        matching_QP = tf.concat(values=[matching_QP_fw, matching_QP_bw], axis=-1)
         
-        return mask_matching_PQ, mask_matching_QP
+        return matching_PQ, matching_QP
 
 
 

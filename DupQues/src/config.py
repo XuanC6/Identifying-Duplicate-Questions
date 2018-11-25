@@ -54,9 +54,9 @@ class Configuration:
 #        self.rnn_units = 200
 #        self.mlp_hidden_nodes = [1600, 1200, 800]
 
-        self.model = BiPMModel2
+        self.model = BiPMModel3
         self.num_perspectives = 20
-        self.rnn_units = 200
+        self.rnn_units = 100
         self.ag_rnn_units = 100
         self.mlp_hidden_nodes = [400, 400, 400]
 
