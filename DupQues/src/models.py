@@ -174,12 +174,14 @@ class BiPMModel2(BiRNNModel):
         Q_fw, Q_bw = Q_outputs
 
         def create_matching_layer(P_input, Q_input, P_length, Q_length, name=None):
-            matching = Attentive_Matching_Layer(P_input, Q_input, P_length, Q_length,
+            _matching = Attentive_Matching_Layer(P_input, Q_input, P_length, Q_length,
                                                 shape=[self.batch_size, self.num_steps, 
                                                        self.config.rnn_units, 
                                                        self.config.num_perspectives],
                                                 initializer=self.initializer(),
                                                 name=name)
+            matching = tf.layers.dropout(_matching, self.config.dropout,
+                                         training=self.training)
             return matching
 
         with tf.variable_scope("Matching_Layer_PQ"):
@@ -188,10 +190,6 @@ class BiPMModel2(BiRNNModel):
                                                    self.length1, self.length2, "AM_PQ_fw")
             matching_PQ_bw = create_matching_layer(P_bw, Q_bw, 
                                                    self.length1, self.length2, "AM_PQ_bw")
-            matching_PQ_fw = tf.layers.dropout(matching_PQ_fw, self.config.dropout,
-                                               training=self.training)
-            matching_PQ_bw = tf.layers.dropout(matching_PQ_bw, self.config.dropout,
-                                               training=self.training)
 
         with tf.variable_scope("Matching_Layer_QP"):
             # [batch_size, num_steps, num_perspectives]
@@ -199,10 +197,6 @@ class BiPMModel2(BiRNNModel):
                                                    self.length2, self.length1, "AM_QP_fw")
             matching_QP_bw = create_matching_layer(Q_bw, P_bw,
                                                    self.length2, self.length1, "AM_QP_bw")
-            matching_QP_fw = tf.layers.dropout(matching_QP_fw, self.config.dropout,
-                                               training=self.training)
-            matching_QP_bw = tf.layers.dropout(matching_QP_bw, self.config.dropout,
-                                               training=self.training)
 
         # [batch_size, num_steps, 2*num_perspectives]
         matching_PQ = tf.concat(values=[matching_PQ_fw, matching_PQ_bw], axis=-1)
@@ -261,12 +255,14 @@ class BiPMModel3(BiPMModel2):
         Q_state_fw, Q_state_bw = Q_states
 
         def create_matching_layer(P_input, Q_input, P_length, name=None):
-            matching = Full_Matching_Layer(P_input, Q_input, P_length,
+            _matching = Full_Matching_Layer(P_input, Q_input, P_length,
                                            shape=[self.batch_size, self.num_steps, 
                                                   self.config.rnn_units, 
                                                   self.config.num_perspectives],
                                             initializer=self.initializer(),
                                             name=name)
+            matching = tf.layers.dropout(_matching, self.config.dropout,
+                                         training=self.training)
             return matching
 
         with tf.variable_scope("Matching_Layer_PQ"):
@@ -275,10 +271,6 @@ class BiPMModel3(BiPMModel2):
                                                    self.length1, "FM_PQ_fw")
             matching_PQ_bw = create_matching_layer(P_bw, Q_state_bw, 
                                                    self.length1, "FM_PQ_bw")
-            matching_PQ_fw = tf.layers.dropout(matching_PQ_fw, self.config.dropout,
-                                               training=self.training)
-            matching_PQ_bw = tf.layers.dropout(matching_PQ_bw, self.config.dropout,
-                                               training=self.training)
 
         with tf.variable_scope("Matching_Layer_QP"):
             # [batch_size, num_steps, num_perspectives]
@@ -286,10 +278,6 @@ class BiPMModel3(BiPMModel2):
                                                    self.length2, "FM_QP_fw")
             matching_QP_bw = create_matching_layer(Q_bw, P_state_bw, 
                                                    self.length2, "FM_QP_bw")
-            matching_QP_fw = tf.layers.dropout(matching_QP_fw, self.config.dropout,
-                                               training=self.training)
-            matching_QP_bw = tf.layers.dropout(matching_QP_bw, self.config.dropout,
-                                               training=self.training)
 
         # [batch_size, num_steps, 2*num_perspectives]
         matching_PQ = tf.concat(values=[matching_PQ_fw, matching_PQ_bw], axis=-1)

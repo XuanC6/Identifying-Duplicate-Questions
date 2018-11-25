@@ -9,7 +9,10 @@ def _mask_P(inputs, batch_size, num_steps, out_dim, P_length):
         mask = tf.less(_idx, tf.expand_dims(P_length, 1))
         # [batch_size, num_steps(P), out_dim]
         mask_tile = tf.tile(tf.expand_dims(mask, 2), [1, 1, out_dim])
-        zeros = tf.zeros([batch_size, num_steps, out_dim])
+        
+        zero_ph = tf.placeholder(tf.float32, [batch_size, num_steps, out_dim], 
+                                 name="zero_ph")
+        zeros = tf.zeros_like(zero_ph)
         mask_inputs = tf.where(mask_tile, inputs, zeros)
 
     return mask_inputs
