@@ -72,7 +72,7 @@ def Attentive_Matching_Layer(P, Q, P_length, Q_length, shape, initializer=None,
 
 def Full_Matching_Layer(P, Q_state, P_length, shape, initializer=None, name=None):
     """
-    Attentive_Matching_Layer.
+    Full_Matching_Layer
     Args:
         P:       A tensor with shape [batch_size, num_steps, in_dim]
         Q_state: A tensor with shape [batch_size, in_dim]
@@ -96,7 +96,60 @@ def Full_Matching_Layer(P, Q_state, P_length, shape, initializer=None, name=None
     return result
 
 
+def Maxpooling_Matching_Layer(P, Q, P_length, Q_length, shape, initializer=None, 
+                              name=None):
+    """
+    Maxpooling_Matching_Layer.
+    Args:
+        P: A tensor with shape [batch_size, num_steps, in_dim]
+        Q: A tensor with shape [batch_size, num_steps, in_dim]
+    Return:
+        mask_matching: A tensor with shape [batch_size, num_steps, out_dim]
+    """
+    batch_size, num_steps, in_dim, out_dim = shape
+    with tf.variable_scope(name):
+        PW = tf.get_variable(name="Perspective_Weight", shape=[out_dim, in_dim],
+                             initializer=initializer)
 
+        # [batch_size, num_steps(P), out_dim, in_dim]
+        Wv1 = tf.nn.l2_normalize(tf.multiply(tf.expand_dims(P, 2), PW), axis=-1)
+        # [batch_size, num_steps(Q), out_dim, in_dim]
+        Wv2 = tf.nn.l2_normalize(tf.multiply(tf.expand_dims(Q, 2), PW), axis=-1)
+
+        # [batch_size, num_steps(P), num_steps(Q), out_dim, (in_dim)]
+        _result = tf.reduce_sum(tf.multiply(tf.expand_dims(Wv1, 2), 
+                                            tf.expand_dims(Wv2, 1)), axis=-1)
+        
+        # [batch_size, num_steps(P), out_dim]
+        result = tf.reduce_max(_result, axis=2)
+    return result
+
+
+def Max_Attentive_Matching_Layer(P, Q, P_length, Q_length, shape, initializer=None, 
+                                 name=None):
+    """
+    Max_Attentive_Matching_Layer.
+    Args:
+        P: A tensor with shape [batch_size, num_steps, in_dim]
+        Q: A tensor with shape [batch_size, num_steps, in_dim]
+    Return:
+        mask_matching: A tensor with shape [batch_size, num_steps, out_dim]
+    """
+    batch_size, num_steps, in_dim, out_dim = shape
+    with tf.variable_scope(name):
+        PW = tf.get_variable(name="Perspective_Weight", shape=[out_dim, in_dim],
+                             initializer=initializer)
+        # [batch_size, 1, in_dim]
+        max_Q = tf.reduce_max(Q, axis=1, keepdims=True)
+        
+        # [batch_size, num_steps(P), out_dim, in_dim]
+        Wv1 = tf.nn.l2_normalize(tf.multiply(tf.expand_dims(P, 2), PW), axis=-1)
+        # [batch_size,            1, out_dim, in_dim]
+        Wv2 = tf.nn.l2_normalize(tf.multiply(tf.expand_dims(max_Q, 2), PW), axis=-1)
+
+        # [batch_size, num_steps(P), out_dim, (in_dim)]
+        result = tf.reduce_sum(tf.multiply(Wv1, Wv2), axis=-1)
+    return result
 
 
 

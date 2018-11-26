@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import tensorflow as tf
-from models import BiRNNModel, BiPMModel2, BiPMModel3
+from models import BiRNNModel, BiPMModel2, BiPMModel3, BiPMModel4, BiPMModel5
 
 
 class Configuration:
@@ -77,7 +77,7 @@ class Configuration:
         '''
         self.dropout = 0.1
         self.lr_decay = True
-        self.lr_decay_epoch = 4
+        self.lr_decay_epoch = 2
         self.lr_decay_rate = 0.9
         self.learning_rate = 0.001
 
