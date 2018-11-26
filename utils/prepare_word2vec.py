@@ -28,7 +28,7 @@ if not os.path.exists(val_dir):
     os.mkdir(val_dir)
 
 # In[read data]
-load_model = True
+load_model = False
 load_tv = True
 
 # read csv
@@ -84,15 +84,6 @@ for index, row in df.iterrows():
 
     labels.append(int(row["is_duplicate"]))
 
-# In[train wv]
-if load_model:
-    model = Word2Vec.load(word2vec_model_path)
-else:
-    model = Word2Vec(size=100, window=10, min_count=2, sg=1, workers=4)
-    model.iter = 5
-    model.build_vocab(documents)  # prepare the model vocabulary
-    model.train(sentences=documents, total_examples=len(documents), epochs=model.iter)
-    model.save(word2vec_model_path)
 
 # In[save dicts and parsed data]
 index_word = {value:key for key, value in word_index.items()}
@@ -146,14 +137,12 @@ lengths_set1 = lengths[::2]
 lengths_set2 = lengths[1::2]
 assert question_set1.shape[0] == question_set2.shape[0]
 
-
 if os.path.exists(indices_dir+"indices.txt") and load_tv:
     indices = np.loadtxt(indices_dir+"indices.txt", dtype = np.int32)
 else:
     indices = np.arange(question_set1.shape[0])
     np.random.shuffle(indices)
     np.savetxt(indices_dir+"indices.txt", indices, fmt='%d')
-
 
 question_set1 = question_set1[indices]
 question_set2 = question_set2[indices]
@@ -197,6 +186,24 @@ np.savetxt(data_dir+"data.txt", data, fmt='%d')
 np.savetxt(data_dir+"labels.txt", labels, fmt='%d')
 np.savetxt(data_dir+"lengths.txt", lengths, fmt='%d')
 
+# In[train wv on train set]
+documents_set1 = documents[::2]
+documents_set2 = documents[1::2]
+documents_set1 = documents_set1[indices.tolist()]
+documents_set2 = documents_set2[indices.tolist()]
+documents_train_set1 = documents_set1[:training_samples]
+documents_train_set2 = documents_set2[:training_samples]
+documents_train = documents_train_set1+documents_train_set2
+
+if load_model:
+    model = Word2Vec.load(word2vec_model_path)
+else:
+    model = Word2Vec(size=100, window=10, min_count=2, sg=1, workers=4)
+    model.iter = 5
+    model.build_vocab(documents_train)  # prepare the model vocabulary
+    model.train(sentences=documents_train, total_examples=len(documents_train),
+                epochs=model.iter)
+    model.save(word2vec_model_path)
 
 # In[get word embeddings]
 embedding_dim = 100
