@@ -89,6 +89,7 @@ if load_model:
     model = Word2Vec.load(word2vec_model_path)
 else:
     model = Word2Vec(size=100, window=10, min_count=2, sg=1, workers=4)
+    model.iter = 5
     model.build_vocab(documents)  # prepare the model vocabulary
     model.train(sentences=documents, total_examples=len(documents), epochs=model.iter)
     model.save(word2vec_model_path)
@@ -199,10 +200,10 @@ np.savetxt(data_dir+"lengths.txt", lengths, fmt='%d')
 
 # In[get word embeddings]
 embedding_dim = 100
-#embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
-embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
-embedding_matrix = (embedding_matrix-0.5)
-embedding_matrix[0] = np.zeros(embedding_dim)
+embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
+#embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
+#embedding_matrix = (embedding_matrix-0.5)
+#embedding_matrix[0] = np.zeros(embedding_dim)
 
 for word, i in word_index.items():
     try:
