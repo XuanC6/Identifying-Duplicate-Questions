@@ -189,8 +189,8 @@ np.savetxt(data_dir+"lengths.txt", lengths, fmt='%d')
 # In[train wv on train set]
 documents_set1 = documents[::2]
 documents_set2 = documents[1::2]
-documents_set1 = documents_set1[indices.tolist()]
-documents_set2 = documents_set2[indices.tolist()]
+documents_set1 = [documents_set1[idx] for idx in indices]
+documents_set2 = [documents_set2[idx] for idx in indices]
 documents_train_set1 = documents_set1[:training_samples]
 documents_train_set2 = documents_set2[:training_samples]
 documents_train = documents_train_set1+documents_train_set2

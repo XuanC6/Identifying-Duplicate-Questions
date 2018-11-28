@@ -7,7 +7,7 @@ Created on Mon Oct  8 01:03:42 2018
 import os
 import numpy as np
 
-data_dir = os.path.dirname(os.path.dirname(__file__)) + "/DupQues/data/train/"
+data_dir = os.path.dirname(os.path.dirname(__file__)) + "/DupQues/data/valid/"
 
 # class ratio
 labels = np.loadtxt(data_dir+"labels.txt", dtype = np.int32)

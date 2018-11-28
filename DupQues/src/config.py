@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import tensorflow as tf
-from models import BiRNNModel
+from models import BiRNNModel, DecAtnModel
 #BiPMModel2, BiPMModel3, BiPMModel4, BiPMModel5
 
 
@@ -48,40 +48,52 @@ class Configuration:
         '''
         model parameters
         '''
-        self.model = BiRNNModel
-#        self.model = BiPMModel2
-        self.rnn_units = 200
-        self.mlp_hidden_nodes = [800, 800, 600]
-#        self.mlp_hidden_nodes = [1600, 1200, 800]
+        '''
+            RNN Model
+        '''
+#        self.model = BiRNNModel
+##        self.model = BiPMModel2
+#        self.rnn_units = 200
+#        self.mlp_hidden_nodes = [800, 800, 600]
+##        self.mlp_hidden_nodes = [1600, 1200, 800]
 
 #        self.model = BiPMModel3
 #        self.num_perspectives = 20
 #        self.rnn_units = 100
 #        self.ag_rnn_units = 100
 #        self.mlp_hidden_nodes = [400, 400, 400]
-
+        '''
+            Decomposable Attention Model
+        '''
+        self.model = DecAtnModel
+        self.DecAtn_out_dim = 200
+        self.DecAtn_ffn_nodes = [200, 200]
+        self.mlp_hidden_nodes = [400, 400]
+        '''
+            general parameters
+        '''
         self.batch_size = 32
         self.num_steps = 35
         self.wordvec_size = 100
 
         self.word_embedding_pretrained = True
         self.word_embedding_trainable = False
-        self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
 
+        self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
         self.initializer = tf.contrib.layers.variance_scaling_initializer
         self.rnn_initializer = tf.glorot_uniform_initializer
+#        self.optimizer = tf.train.GradientDescentOptimizer
         self.optimizer = tf.train.AdamOptimizer
-
         '''
         training parameters
         '''
         self.dropout = 0.1
-        self.lr_decay = True
-        self.lr_decay_epoch = 2
+        self.learning_rate = 1e-4
+        self.lr_decay = False
+        self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
-        self.learning_rate = 0.001
 
-        self.num_epoch = 40
+        self.num_epoch = 100
         self.early_stop_epoch = 10
         self.threshold = 1.0
         # model saved flag when meet best valid score

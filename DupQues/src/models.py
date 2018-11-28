@@ -8,12 +8,15 @@ utils_dir = os.path.join(base_dir, "utils")
 sys.path.append(utils_dir)
 
 from layers import Attentive_Matching_Layer, Full_Matching_Layer, \
-                    Maxpooling_Matching_Layer, Max_Attentive_Matching_Layer
+                    Maxpooling_Matching_Layer, Max_Attentive_Matching_Layer, \
+                    Decomposable_Attention_Layer
 
 
 
 class BiRNNModel:
-
+    '''
+    Siamese_GRU
+    '''
     def __init__(self, config):
         self.config = config
 
@@ -74,7 +77,7 @@ class BiRNNModel:
         return rnncells
 
 
-    def _run_rnn(self, inputs):
+    def _run_core(self, inputs):
         # calculate output
         rnncells = self._create_rnncells(4, self.config.rnn_units)
         with tf.variable_scope("Bidirectional_RNN1"):
@@ -88,13 +91,13 @@ class BiRNNModel:
 
         fw1, bw1 = state1
         fw2, bw2 = state2
-        rnn_output = tf.concat(values = [fw1, bw1, fw2, bw2], axis = -1)
+        core_output = tf.concat(values = [fw1, bw1, fw2, bw2], axis = -1)
         
-        return rnn_output
+        return core_output
 
 
     def compute_loss(self, inputs):
-        hidden_layer = self._run_rnn(inputs)
+        hidden_layer = self._run_core(inputs)
 
         with tf.variable_scope("Dense_Layers"):
             for n_node in self.config.mlp_hidden_nodes:
@@ -227,7 +230,7 @@ class BiPMModel2(BiRNNModel):
         return tf.concat(values=[fw1, bw1, fw2, bw2], axis=-1)
 
 
-    def _run_rnn(self, inputs):
+    def _run_core(self, inputs):
         # calculate outputs
         cr_rnncells = self._create_rnncells(4, self.config.rnn_units)
         ag_rnncells = self._create_rnncells(4, self.config.ag_rnn_units)
@@ -235,11 +238,11 @@ class BiPMModel2(BiRNNModel):
         outputs1, outputs2, states1, states2 = self._context_representation(cr_rnncells, inputs)
         matching_PQ, matching_QP = self._matching(P_outputs=outputs1, Q_outputs=outputs2, 
                                                   P_states=states1, Q_states=states2)
-        rnn_output = self._aggregation(ag_rnncells, matching_PQ, matching_QP)
+        core_output = self._aggregation(ag_rnncells, matching_PQ, matching_QP)
 #        print(outputs1[0].shape)
 #        print(mask_matching_PQ.shape)
-#        print(rnn_output.shape)
-        return rnn_output
+#        print(core_output.shape)
+        return core_output
 
 
 
@@ -324,3 +327,23 @@ class BiPMModel3(BiPMModel2):
         matching_QP = tf.concat(values=[matching_QP_fw, matching_QP_bw], axis=-1)
         
         return matching_PQ, matching_QP
+
+
+
+class DecAtnModel(BiRNNModel):
+    '''
+    Decomposable Attention
+    '''
+    def _run_core(self, inputs):
+        # calculate output
+        core_output = Decomposable_Attention_Layer(inputs[0], inputs[1],
+                                                   self.length1, self.length2,
+                                                   config=self.config,
+                                                   training=self.training,
+                                                   initializer=self.initializer(),
+                                                   name="DecAtn_Layer")
+        # [batch_size, 2*out_dim]
+#        print(core_output.shape)
+        return core_output
+
+
