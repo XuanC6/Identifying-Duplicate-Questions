@@ -22,6 +22,7 @@ class Classifier:
         data = self.reader.load_data()
         self.train_set = data['train']
         self.val_set = data['valid']
+        self.test_set = data['test']
 
 
     def train(self, restore):
@@ -125,7 +126,7 @@ class Classifier:
 
 
     def test(self):
-        test_set = self.val_set
+        test_set = self.test_set
 #        test_set = self.train_set
         with tf.Graph().as_default(), tf.Session() as sess:
             model = self.config.model(self.config)

@@ -114,7 +114,7 @@ class BiRNNModel:
 
             self.scores = tf.nn.sigmoid(logits, name="predict_probs")
             float_labels=tf.to_float(self.labels)
-            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-6, 1-1e-6)
+            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-8, 1-1e-8)
             loss = -tf.multiply(float_labels, tf.log(clipped_scores))-\
                     tf.multiply((1.0-float_labels), tf.log(1.0-clipped_scores))
 
@@ -147,10 +147,10 @@ class BiRNNModel:
         optimizer = self.config.optimizer(self.learning_rate)
         grads_and_vars = optimizer.compute_gradients(self.loss)
         with tf.variable_scope("clip_grad"):
-            capped_gvs = [(tf.clip_by_value(grad, -self.config.threshold, self.config.threshold), var)
+            capped_gvs = [(tf.clip_by_value(grad, -self.config.grad_threshold,
+                                            self.config.grad_threshold), var)
                             for grad, var in grads_and_vars]
         self.train_op = optimizer.apply_gradients(capped_gvs, name="train")
-
 
 
 class BiPMModel2(BiRNNModel):

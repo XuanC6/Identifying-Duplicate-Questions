@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import tensorflow as tf
-from models import BiRNNModel, DecAtnModel
-#BiPMModel2, BiPMModel3, BiPMModel4, BiPMModel5
+from models import BiRNNModel, DecAtnModel #, BiPMModel2, BiPMModel3, BiPMModel4, BiPMModel5
 
 
 class Configuration:
@@ -25,6 +24,7 @@ class Configuration:
         data_dir = os.path.join(base_dir, "data")
         train_dir = os.path.join(data_dir, "train")
         valid_dir = os.path.join(data_dir, "valid")
+        test_dir = os.path.join(data_dir, "test")
 
         # train path
         self.train_data1_path = os.path.join(train_dir, data1_name)
@@ -39,6 +39,13 @@ class Configuration:
         self.valid_length1_path = os.path.join(valid_dir, length1_name)
         self.valid_length2_path = os.path.join(valid_dir, length2_name)
         self.valid_labels_path = os.path.join(valid_dir, labels_name)
+
+        # test path
+        self.test_data1_path = os.path.join(test_dir, data1_name)
+        self.test_data2_path = os.path.join(test_dir, data2_name)
+        self.test_length1_path = os.path.join(test_dir, length1_name)
+        self.test_length2_path = os.path.join(test_dir, length2_name)
+        self.test_labels_path = os.path.join(test_dir, labels_name)
 
         # id_word path
         self.id_word_path = os.path.join(data_dir, id_word_name)
@@ -67,19 +74,19 @@ class Configuration:
         '''
         self.model = DecAtnModel
         self.DecAtn_out_dim = 200
-        self.DecAtn_ffn_nodes = [200, 200]
-        self.mlp_hidden_nodes = [400, 400]
+        self.DecAtn_ffn_nodes = [400, 400]
+        self.mlp_hidden_nodes = [600, 600]
         '''
             general parameters
         '''
         self.batch_size = 32
         self.num_steps = 35
         self.wordvec_size = 100
-
+        self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
+        
         self.word_embedding_pretrained = True
         self.word_embedding_trainable = False
-
-        self.num_words = len(open(self.id_word_path, 'r', encoding='UTF-8').readlines())+1
+        
         self.initializer = tf.contrib.layers.variance_scaling_initializer
         self.rnn_initializer = tf.glorot_uniform_initializer
 #        self.optimizer = tf.train.GradientDescentOptimizer
@@ -87,15 +94,16 @@ class Configuration:
         '''
         training parameters
         '''
-        self.dropout = 0.1
-        self.learning_rate = 1e-4
+        self.dropout = 0.2
+        self.learning_rate = 2e-5
         self.lr_decay = False
         self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
-
+        
         self.num_epoch = 100
         self.early_stop_epoch = 10
-        self.threshold = 1.0
+        self.grad_threshold = 1.0
+        
         # model saved flag when meet best valid score
         self.model_save_by_best_valid = True
         # model saved period when model_save_by_best_valid==False
@@ -105,9 +113,9 @@ class Configuration:
         '''
         log paths
         '''
-        self.log_dir = os.path.join(base_dir, "logs")
-
         self.model_name = self.model.__name__
+        self.log_dir = os.path.join(base_dir, "logs_"+self.model_name)
+
         self.model_dir = os.path.join(self.log_dir, "model")
         self.model_path = os.path.join(self.model_dir, self.model_name)
 

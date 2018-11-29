@@ -184,13 +184,13 @@ def _ffn(_P_input, _Q_input, out_dim, config, training, activation, initializer)
                                        strides=(1, 1), padding="same",
                                        activation=activation,
                                        kernel_initializer=initializer)
-            P_input = tf.layers.dropout(P_input, config.dropout, training=training)
             Q_input = tf.layers.conv2d(Q_input, nodes, kernel_size=1,
                                        strides=(1, 1), padding="same",
                                        activation=activation,
                                        kernel_initializer=initializer)
+            P_input = tf.layers.dropout(P_input, config.dropout, training=training)
             Q_input = tf.layers.dropout(Q_input, config.dropout, training=training)
-    
+
         # [batch_size, num_steps, 1, out_dim]
         P_input = tf.layers.conv2d(P_input, out_dim, kernel_size=1,
                                    strides=(1, 1), padding="same",
@@ -198,12 +198,12 @@ def _ffn(_P_input, _Q_input, out_dim, config, training, activation, initializer)
         Q_input = tf.layers.conv2d(Q_input, out_dim, kernel_size=1,
                                    strides=(1, 1), padding="same",
                                    kernel_initializer=initializer)
-    
         # [batch_size, num_steps, out_dim]
         P_input = tf.squeeze(P_input, [2])
         Q_input = tf.squeeze(Q_input, [2])
 
     return P_input, Q_input
+
 
 def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
                                  activation=tf.nn.elu, initializer=None, name=None):
@@ -240,10 +240,7 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
                 zeros_1 = tf.zeros_like(zero_ph_1)
                 zeros_2 = tf.zeros_like(zero_ph_2)
                 zeros_3 = tf.zeros_like(zero_ph_3)
-#                zeros_1 = tf.zeros([batch_size, num_steps, in_dim])
-#                zeros_2 = tf.zeros([batch_size, num_steps, out_dim])
-#                zeros_3 = tf.zeros([batch_size, num_steps, num_steps])
-                
+
                 mask_dim1_PQ_1 = _mask_dim1(batch_size, num_steps, in_dim, P_length)
                 mask_dim1_QP_1 = _mask_dim1(batch_size, num_steps, in_dim, Q_length)
                 mask_dim1_PQ_2 = _mask_dim1(batch_size, num_steps, out_dim, P_length)
@@ -305,7 +302,6 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
             # [batch_size, 2*out_dim]
             outputs = tf.concat(values=[tf.reduce_sum(mask_G_V1, axis=1),
                                         tf.reduce_sum(mask_G_V2, axis=1)], axis=-1)
-
         return outputs
 
 

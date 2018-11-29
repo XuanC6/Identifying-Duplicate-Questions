@@ -16,6 +16,7 @@ data_dir = os.path.dirname(os.path.dirname(__file__)) + "/DupQues/data/"
 indices_dir = data_dir + "indices/"
 train_dir = data_dir + "train/"
 val_dir = data_dir + "valid/"
+test_dir = data_dir + "test/"
 
 csv_path = data_dir + "questions.csv"
 word2vec_model_path = data_dir + "word2vec.model"
@@ -26,10 +27,12 @@ if not os.path.exists(train_dir):
     os.mkdir(train_dir)
 if not os.path.exists(val_dir):
     os.mkdir(val_dir)
+if not os.path.exists(test_dir):
+    os.mkdir(test_dir)
 
 # In[read data]
 load_model = False
-load_tv = True
+load_tv = False
 
 # read csv
 df = pd.read_csv(csv_path)
@@ -109,7 +112,6 @@ print('Found %s unique tokens.' % len(word_index))
 
 # In[process data]
 max_len = 35
-training_samples = 380000
 
 def pad_seqs(seqs, maxlen):
     for i in range(len(seqs)):
@@ -129,6 +131,9 @@ data = pad_seqs(q_seqs, max_len)
 labels = np.asarray(labels)
 lengths = np.asarray(lengths)
 
+#training_samples = 380000
+valid_samples = 10000
+test_samples = 10000
 
 # In[save data]
 question_set1 = data[::2]
@@ -156,11 +161,25 @@ labels_name = "labels.txt"
 length1_name = "length1.txt"
 length2_name = "length2.txt"
 
-x_train_set1 = question_set1[:training_samples]
-x_train_set2 = question_set2[:training_samples]
-y_train = labels[:training_samples]
-len_train_set1 = lengths_set1[:training_samples]
-len_train_set2 = lengths_set2[:training_samples]
+x_val_set1 = question_set1[:valid_samples]
+x_val_set2 = question_set2[:valid_samples]
+y_val = labels[:valid_samples]
+len_val = lengths[:valid_samples]
+len_val_set1 = lengths_set1[:valid_samples]
+len_val_set2 = lengths_set2[:valid_samples]
+
+x_test_set1 = question_set1[valid_samples:valid_samples+test_samples]
+x_test_set2 = question_set2[valid_samples:valid_samples+test_samples]
+y_test = labels[valid_samples:valid_samples+test_samples]
+len_test = lengths[valid_samples:valid_samples+test_samples]
+len_test_set1 = lengths_set1[valid_samples:valid_samples+test_samples]
+len_test_set2 = lengths_set2[valid_samples:valid_samples+test_samples]
+
+x_train_set1 = question_set1[valid_samples+test_samples:]
+x_train_set2 = question_set2[valid_samples+test_samples:]
+y_train = labels[valid_samples+test_samples:]
+len_train_set1 = lengths_set1[valid_samples+test_samples:]
+len_train_set2 = lengths_set2[valid_samples+test_samples:]
 
 np.savetxt(train_dir + data1_name, x_train_set1, fmt='%d')
 np.savetxt(train_dir + data2_name, x_train_set2, fmt='%d')
@@ -168,18 +187,17 @@ np.savetxt(train_dir + labels_name, y_train, fmt='%d')
 np.savetxt(train_dir + length1_name, len_train_set1, fmt='%d')
 np.savetxt(train_dir + length2_name, len_train_set2, fmt='%d')
 
-x_val_set1 = question_set1[training_samples:]
-x_val_set2 = question_set2[training_samples:]
-y_val = labels[training_samples:]
-len_val = lengths[training_samples:]
-len_val_set1 = lengths_set1[training_samples:]
-len_val_set2 = lengths_set2[training_samples:]
-
 np.savetxt(val_dir + data1_name, x_val_set1, fmt='%d')
 np.savetxt(val_dir + data2_name, x_val_set2, fmt='%d')
 np.savetxt(val_dir + labels_name, y_val, fmt='%d')
 np.savetxt(val_dir + length1_name, len_val_set1, fmt='%d')
 np.savetxt(val_dir + length2_name, len_val_set2, fmt='%d')
+
+np.savetxt(test_dir + data1_name, x_test_set1, fmt='%d')
+np.savetxt(test_dir + data2_name, x_test_set2, fmt='%d')
+np.savetxt(test_dir + labels_name, y_test, fmt='%d')
+np.savetxt(test_dir + length1_name, len_test_set1, fmt='%d')
+np.savetxt(test_dir + length2_name, len_test_set2, fmt='%d')
 
 # save data, labels, lengths word_index
 np.savetxt(data_dir+"data.txt", data, fmt='%d')
@@ -191,15 +209,15 @@ documents_set1 = documents[::2]
 documents_set2 = documents[1::2]
 documents_set1 = [documents_set1[idx] for idx in indices]
 documents_set2 = [documents_set2[idx] for idx in indices]
-documents_train_set1 = documents_set1[:training_samples]
-documents_train_set2 = documents_set2[:training_samples]
+documents_train_set1 = documents_set1[valid_samples+test_samples:]
+documents_train_set2 = documents_set2[valid_samples+test_samples:]
 documents_train = documents_train_set1+documents_train_set2
 
 if load_model:
     model = Word2Vec.load(word2vec_model_path)
 else:
     model = Word2Vec(size=100, window=10, min_count=2, sg=1, workers=4)
-    model.iter = 5
+    model.iter = 10
     model.build_vocab(documents_train)  # prepare the model vocabulary
     model.train(sentences=documents_train, total_examples=len(documents_train),
                 epochs=model.iter)

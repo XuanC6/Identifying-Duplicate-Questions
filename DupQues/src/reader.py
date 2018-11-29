@@ -28,7 +28,17 @@ class Reader:
         
         valid_set = [valid_data1, valid_data2, valid_length1, valid_length2, valid_labels]
 
+        # test data
+        test_data1 = np.loadtxt(self.config.test_data1_path, dtype = np.int32)
+        test_data2 = np.loadtxt(self.config.test_data2_path, dtype = np.int32)
+        test_length1 = np.loadtxt(self.config.test_length1_path, dtype = np.int32)
+        test_length2 = np.loadtxt(self.config.test_length2_path, dtype = np.int32)
+        test_labels = np.loadtxt(self.config.test_labels_path, dtype = np.int32)
+        
+        test_set = [test_data1, test_data2, test_length1, test_length2, test_labels]
+
         data["train"] = train_set
         data["valid"] = valid_set
+        data["test"] = test_set
 
         return data
