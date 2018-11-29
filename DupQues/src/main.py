@@ -73,8 +73,12 @@ class Classifier:
                     if self.config.lr_decay and epoch+1 > self.config.lr_decay_epoch:
                         lr_decay = self.config.lr_decay_rate**\
                                     max(epoch+1-self.config.lr_decay_epoch, 0.0)
-                        sess.run(tf.assign(model.learning_rate, 
-                                           self.config.learning_rate*lr_decay))
+                        current_lr = self.config.learning_rate*lr_decay
+                        sess.run(tf.assign(model.learning_rate, current_lr))
+                        
+                        # stop decay if lr is below some value
+                        if current_lr <= self.config.least_lr:
+                            self.config.lr_decay = False
 
                     # train one epoch
                     print('='*40)

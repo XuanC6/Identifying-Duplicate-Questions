@@ -59,10 +59,9 @@ class Configuration:
             RNN Model
         '''
 #        self.model = BiRNNModel
-##        self.model = BiPMModel2
+#        self.model = BiPMModel2
 #        self.rnn_units = 200
 #        self.mlp_hidden_nodes = [800, 800, 600]
-##        self.mlp_hidden_nodes = [1600, 1200, 800]
 
 #        self.model = BiPMModel3
 #        self.num_perspectives = 20
@@ -74,8 +73,9 @@ class Configuration:
         '''
         self.model = DecAtnModel
         self.DecAtn_out_dim = 200
-        self.DecAtn_ffn_nodes = [400, 400]
-        self.mlp_hidden_nodes = [600, 600]
+        self.DecAtn_ffn_nodes_F = [100, 100]
+        self.DecAtn_ffn_nodes_G = [200, 200]
+        self.mlp_hidden_nodes = [400, 400]
         '''
             general parameters
         '''
@@ -94,11 +94,12 @@ class Configuration:
         '''
         training parameters
         '''
-        self.dropout = 0.2
-        self.learning_rate = 2e-5
+        self.learning_rate = 1e-4
         self.lr_decay = False
         self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
+        self.least_lr = 1e-5
+        self.dropout = 0.1
         
         self.num_epoch = 100
         self.early_stop_epoch = 10

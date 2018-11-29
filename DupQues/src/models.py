@@ -97,24 +97,25 @@ class BiRNNModel:
 
 
     def compute_loss(self, inputs):
-        hidden_layer = self._run_core(inputs)
-
+        hidden, mask_Beta = self._run_core(inputs)
+        self.hidden = mask_Beta
+        
         with tf.variable_scope("Dense_Layers"):
             for n_node in self.config.mlp_hidden_nodes:
-                hidden_layer = tf.layers.dense(hidden_layer, n_node, 
-                                               activation=tf.nn.elu,
-                                               kernel_initializer=self.initializer())
-                hidden_layer = tf.layers.dropout(hidden_layer, self.config.dropout,
-                                                 training=self.training)
+                hidden = tf.layers.dense(hidden, n_node, 
+                                         kernel_initializer=self.initializer())
+                hidden = tf.nn.elu(hidden)
+                hidden = tf.layers.dropout(hidden, self.config.dropout,
+                                           training=self.training)
 
         with tf.variable_scope("Loss"):
-            logits = tf.layers.dense(hidden_layer, 1,
+            logits = tf.layers.dense(hidden, 1,
                                      kernel_initializer = self.initializer(),
                                      name = 'logits')
 
             self.scores = tf.nn.sigmoid(logits, name="predict_probs")
             float_labels=tf.to_float(self.labels)
-            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-8, 1-1e-8)
+            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-6, 1-1e-6)
             loss = -tf.multiply(float_labels, tf.log(clipped_scores))-\
                     tf.multiply((1.0-float_labels), tf.log(1.0-clipped_scores))
 
@@ -150,7 +151,7 @@ class BiRNNModel:
             capped_gvs = [(tf.clip_by_value(grad, -self.config.grad_threshold,
                                             self.config.grad_threshold), var)
                             for grad, var in grads_and_vars]
-        self.train_op = optimizer.apply_gradients(capped_gvs, name="train")
+        self.train_op = optimizer.apply_gradients(capped_gvs, name="train_op")
 
 
 class BiPMModel2(BiRNNModel):
@@ -336,7 +337,7 @@ class DecAtnModel(BiRNNModel):
     '''
     def _run_core(self, inputs):
         # calculate output
-        core_output = Decomposable_Attention_Layer(inputs[0], inputs[1],
+        core_output, mask_Beta = Decomposable_Attention_Layer(inputs[0], inputs[1],
                                                    self.length1, self.length2,
                                                    config=self.config,
                                                    training=self.training,
@@ -344,6 +345,51 @@ class DecAtnModel(BiRNNModel):
                                                    name="DecAtn_Layer")
         # [batch_size, 2*out_dim]
 #        print(core_output.shape)
-        return core_output
+        return core_output, mask_Beta
+
+
+#    def compute_loss(self, inputs):
+##        hidden = self._run_core(inputs)
+#        hidden, mask_Beta = self._run_core(inputs)
+#        self.hidden = mask_Beta
+#        
+#        with tf.variable_scope("Dense_Layers"):
+#            for n_node in self.config.mlp_hidden_nodes:
+#                hidden = tf.layers.dense(hidden, n_node, 
+#                                         kernel_initializer=self.initializer())
+#                hidden = tf.layers.batch_normalization(hidden, training=self.training)
+#                hidden = tf.nn.elu(hidden)
+#                hidden = tf.layers.dropout(hidden, self.config.dropout, 
+#                                           training=self.training)
+#
+#        with tf.variable_scope("Loss"):
+#            logits = tf.layers.dense(hidden, 1, kernel_initializer = self.initializer())
+#            logits = tf.layers.batch_normalization(logits, training=self.training,
+#                                                   name = 'logits')
+#
+#            self.scores = tf.nn.sigmoid(logits, name="predict_probs")
+#            float_labels=tf.to_float(self.labels)
+#            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-6, 1-1e-6)
+#            loss = -tf.multiply(float_labels, tf.log(clipped_scores))-\
+#                    tf.multiply((1.0-float_labels), tf.log(1.0-clipped_scores))
+#
+##            loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(self.labels),
+##                                                           logits=tf.squeeze(logits))
+#
+#            # normal loss
+#            self.loss = tf.reduce_mean(loss)
+#            # sigmoid
+#            result_options = tf.concat([1-self.scores, self.scores], axis=1)
+#            self.predicts = tf.argmax(result_options, axis = 1)
+#            self.probabilities = tf.reduce_max(result_options, axis=1)
+#
+#
+#    def add_train_op(self):
+#        self.learning_rate = tf.Variable(self.config.learning_rate, trainable=False)
+#        optimizer = self.config.optimizer(self.learning_rate)
+#        
+#        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+#        with tf.control_dependencies(update_ops):
+#            self.train_op = optimizer.minimize(self.loss, name="train_op")
 
 

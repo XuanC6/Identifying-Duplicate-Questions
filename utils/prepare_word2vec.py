@@ -31,8 +31,8 @@ if not os.path.exists(test_dir):
     os.mkdir(test_dir)
 
 # In[read data]
-load_model = False
-load_tv = False
+load_model = True
+load_tv = True
 
 # read csv
 df = pd.read_csv(csv_path)
@@ -86,7 +86,6 @@ for index, row in df.iterrows():
     q_seqs.append(q2_seq)
 
     labels.append(int(row["is_duplicate"]))
-
 
 # In[save dicts and parsed data]
 index_word = {value:key for key, value in word_index.items()}
@@ -216,19 +215,21 @@ documents_train = documents_train_set1+documents_train_set2
 if load_model:
     model = Word2Vec.load(word2vec_model_path)
 else:
-    model = Word2Vec(size=100, window=10, min_count=2, sg=1, workers=4)
+    model = Word2Vec(size=100, window=10, min_count=1, sg=1, workers=4)
     model.iter = 10
     model.build_vocab(documents_train)  # prepare the model vocabulary
     model.train(sentences=documents_train, total_examples=len(documents_train),
                 epochs=model.iter)
     model.save(word2vec_model_path)
 
+print("num of words in wordvec: %d" % (len(model.wv.vocab)))
+
 # In[get word embeddings]
 embedding_dim = 100
-embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
-#embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
-#embedding_matrix = (embedding_matrix-0.5)
-#embedding_matrix[0] = np.zeros(embedding_dim)
+#embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
+embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
+embedding_matrix = (embedding_matrix-0.5)
+embedding_matrix[0] = np.zeros(embedding_dim)
 
 for word, i in word_index.items():
     try:

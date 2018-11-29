@@ -173,36 +173,30 @@ def _mask_dim2(batch_size, dim1, dim2, length):
     mask_tile = tf.tile(tf.expand_dims(mask, 1), [1, dim1, 1])
     return mask_tile
 
-def _ffn(_P_input, _Q_input, out_dim, config, training, activation, initializer):
-    with tf.variable_scope("Feed_Forward"):
+def _ffn(P_input, Q_input, out_dim, nodes_list, dropout, training, activation, initializer):
+    def ffn(hidden):
         # [batch_size, num_steps, 1, in_dim]
-        P_input = tf.expand_dims(_P_input, 2)
-        Q_input = tf.expand_dims(_Q_input, 2)
-        
-        for nodes in config.DecAtn_ffn_nodes:
-            P_input = tf.layers.conv2d(P_input, nodes, kernel_size=1,
-                                       strides=(1, 1), padding="same",
-                                       activation=activation,
-                                       kernel_initializer=initializer)
-            Q_input = tf.layers.conv2d(Q_input, nodes, kernel_size=1,
-                                       strides=(1, 1), padding="same",
-                                       activation=activation,
-                                       kernel_initializer=initializer)
-            P_input = tf.layers.dropout(P_input, config.dropout, training=training)
-            Q_input = tf.layers.dropout(Q_input, config.dropout, training=training)
-
+        hidden = tf.expand_dims(hidden, 2)
+        for nodes in nodes_list:
+            hidden = tf.layers.conv2d(hidden, nodes, kernel_size=1, strides=(1, 1), 
+                                      padding="same", kernel_initializer=initializer)
+#            hidden = tf.layers.batch_normalization(hidden, training=training)
+            hidden = activation(hidden)
+            hidden = tf.layers.dropout(hidden, dropout, training=training)
         # [batch_size, num_steps, 1, out_dim]
-        P_input = tf.layers.conv2d(P_input, out_dim, kernel_size=1,
-                                   strides=(1, 1), padding="same",
-                                   kernel_initializer=initializer)
-        Q_input = tf.layers.conv2d(Q_input, out_dim, kernel_size=1,
-                                   strides=(1, 1), padding="same",
-                                   kernel_initializer=initializer)
+        output = tf.layers.conv2d(hidden, out_dim, kernel_size=1, strides=(1, 1), 
+                                  padding="same", kernel_initializer=initializer)
+#        output = tf.layers.batch_normalization(output, training=training)
         # [batch_size, num_steps, out_dim]
-        P_input = tf.squeeze(P_input, [2])
-        Q_input = tf.squeeze(Q_input, [2])
+        output = tf.squeeze(output, [2])
+        return output
+    
+    with tf.variable_scope("Feed_Forward"):
+        # [batch_size, num_steps, out_dim]
+        P_output = ffn(P_input)
+        Q_output = ffn(Q_input)
 
-    return P_input, Q_input
+    return P_output, Q_output
 
 
 def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
@@ -219,17 +213,6 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
                                              config.wordvec_size, config.DecAtn_out_dim
     with tf.variable_scope(name):
         with tf.variable_scope("Attend"):
-            # [batch_size, num_steps, in_dim]
-            F_P, F_Q = _ffn(P, Q, in_dim, config, training, activation, initializer)
-
-            # [batch_size, num_steps(P),            1, in_dim]
-            # [batch_size,            1, num_steps(Q), in_dim]
-            Logits = tf.multiply(tf.expand_dims(F_P, 2), tf.expand_dims(F_Q, 1))
-            # [batch_size, num_steps(P), num_steps(Q)]
-            logits_PQ = tf.reduce_sum(Logits, axis=-1)
-            # [batch_size, num_steps(Q), num_steps(P)]
-            logits_QP = tf.transpose(logits_PQ, perm=[0, 2, 1])
-
             with tf.variable_scope("masks"):
                 zero_ph_1 = tf.placeholder(tf.float32, [batch_size, num_steps, in_dim],
                                            name="zero_ph_1")
@@ -249,6 +232,18 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
                 mask_dim2_PQ = _mask_dim2(batch_size, num_steps, num_steps, Q_length)
                 mask_dim2_QP = _mask_dim2(batch_size, num_steps, num_steps, P_length)
 
+            # [batch_size, num_steps, in_dim]
+            F_P, F_Q = _ffn(P, Q, in_dim, config.DecAtn_ffn_nodes_F, config.dropout,
+                            training, activation, initializer)
+
+            # [batch_size, num_steps(P),            1, in_dim]
+            # [batch_size,            1, num_steps(Q), in_dim]
+            Logits = tf.multiply(tf.expand_dims(F_P, 2), tf.expand_dims(F_Q, 1))
+            # [batch_size, num_steps(P), num_steps(Q)]
+            logits_PQ = tf.reduce_sum(Logits, axis=-1)
+            # [batch_size, num_steps(Q), num_steps(P)]
+            logits_QP = tf.transpose(logits_PQ, perm=[0, 2, 1])
+            
             mask_logits_PQ = tf.where(mask_dim2_PQ, logits_PQ, zeros_3)
             mask_logits_QP = tf.where(mask_dim2_QP, logits_QP, zeros_3)
             
@@ -261,20 +256,21 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
             mask_exps_beta = tf.where(mask_dim2_PQ, exps_beta, zeros_3)
             # [batch_size, num_steps(Q), num_steps(P)]
             mask_exps_alpha = tf.where(mask_dim2_QP, exps_alpha, zeros_3)
-
+            
             # [batch_size, num_steps(P), num_steps(Q)]
             weights_beta = tf.divide(mask_exps_beta,
                                      tf.reduce_sum(mask_exps_beta, axis=2, keepdims=True))
                                      # [batch_size, num_steps(P), 1]
-    
+            
             # [batch_size, num_steps(Q), num_steps(P)]
             weights_alpha = tf.divide(mask_exps_alpha,
                                       tf.reduce_sum(mask_exps_alpha, axis=2, keepdims=True))
                                       # [batch_size, num_steps(P), 1]
-
+                                      
+            # [batch_size, num_steps, num_steps]
             mask_weights_beta = tf.where(mask_dim2_PQ, weights_beta, zeros_3)
             mask_weights_alpha = tf.where(mask_dim2_QP, weights_alpha, zeros_3)
-
+            
             # [batch_size, num_steps(P), num_steps(Q)]*[batch_size, num_steps(Q), in_dim]
             # = [batch_size, num_steps(P), in_dim]
             Beta = tf.matmul(mask_weights_beta, Q)
@@ -284,7 +280,7 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
             
             mask_Beta = tf.where(mask_dim1_PQ_1, Beta, zeros_1)
             mask_Alpha = tf.where(mask_dim1_QP_1, Alpha, zeros_1)
-
+            
             # [batch_size, num_steps(P), 2*in_dim]
             P_Beta = tf.concat(values=[P, mask_Beta], axis=-1)
             # [batch_size, num_steps(Q), 2*in_dim]
@@ -292,8 +288,8 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
 
         with tf.variable_scope("Compare"):
             # [batch_size, num_steps, out_dim]
-            G_V1, G_V2 = _ffn(P_Beta, Q_Alpha, out_dim, config, training, 
-                              activation, initializer)
+            G_V1, G_V2 = _ffn(P_Beta, Q_Alpha, out_dim, config.DecAtn_ffn_nodes_G, 
+                              config.dropout, training, activation, initializer)
             # mask G_V1 G_V2
             mask_G_V1 = tf.where(mask_dim1_PQ_2, G_V1, zeros_2)
             mask_G_V2 = tf.where(mask_dim1_QP_2, G_V2, zeros_2)
@@ -302,7 +298,7 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
             # [batch_size, 2*out_dim]
             outputs = tf.concat(values=[tf.reduce_sum(mask_G_V1, axis=1),
                                         tf.reduce_sum(mask_G_V2, axis=1)], axis=-1)
-        return outputs
+        return outputs, F_P
 
 
 
