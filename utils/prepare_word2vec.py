@@ -226,10 +226,10 @@ print("num of words in wordvec: %d" % (len(model.wv.vocab)))
 
 # In[get word embeddings]
 embedding_dim = 100
-#embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
-embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
-embedding_matrix = (embedding_matrix-0.5)
-embedding_matrix[0] = np.zeros(embedding_dim)
+embedding_matrix = np.zeros((len(word_index)+1, embedding_dim))
+#embedding_matrix = np.random.rand(len(word_index)+1, embedding_dim)
+#embedding_matrix = (embedding_matrix-0.5)
+#embedding_matrix[0] = np.zeros(embedding_dim)
 
 for word, i in word_index.items():
     try:

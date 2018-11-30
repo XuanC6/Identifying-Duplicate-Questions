@@ -130,7 +130,7 @@ class Classifier:
 
     def test(self):
         test_set = self.test_set
-#        test_set = self.train_set
+#        test_set = self.val_set
         with tf.Graph().as_default(), tf.Session() as sess:
             model = self.config.model(self.config)
             init = tf.global_variables_initializer()
