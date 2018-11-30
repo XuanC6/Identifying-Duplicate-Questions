@@ -113,34 +113,22 @@ class BiRNNModel:
                                      kernel_initializer = self.initializer(),
                                      name = 'logits')
 
-            self.scores = tf.nn.sigmoid(logits, name="predict_probs")
+            # [batch_size, 1]
+            scores = tf.nn.sigmoid(logits, name="predict_probs")
+            self.scores = tf.squeeze(scores)
             float_labels=tf.to_float(self.labels)
-            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-6, 1-1e-6)
+            clipped_scores = tf.clip_by_value(self.scores, 1e-6, 1-1e-6)
+            # sigmoid
             loss = -tf.multiply(float_labels, tf.log(clipped_scores))-\
                     tf.multiply((1.0-float_labels), tf.log(1.0-clipped_scores))
 
-#            loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(self.labels),
-#                                                           logits=tf.squeeze(logits))
-
-#            self.scores = tf.nn.softmax(logits, name="predict_probs")
-#            loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=tf.one_hot(self.labels, 2),
-#                                                              logits=logits)
-
-#            # put more weight on samples with label 1
-#            alpha = 0.266
-#            weights = tf.exp((tf.to_float(self.labels)-0.5)*2*alpha, name="weights")
-#            weighted_loss = tf.multiply(weights, loss, name="weighted_loss")
-#            self.loss = tf.reduce_sum(weighted_loss)/tf.reduce_sum(weights)
-
-            # normal loss
             self.loss = tf.reduce_mean(loss)
-            # sigmoid
-            result_options = tf.concat([1-self.scores, self.scores], axis=1)
+            threshold = tf.constant(self.config.class1_threshold, 
+                                    shape=[self.batch_size, 1])
+
+            result_options = tf.concat([threshold, scores], axis=1)
             self.predicts = tf.argmax(result_options, axis = 1)
-            self.probabilities = tf.reduce_max(result_options, axis=1)
-#            # softmax
-#            self.predicts = tf.argmax(self.scores, axis = 1)
-#            self.probabilities = tf.reduce_max(self.scores, axis=1)
+
 
 
     def add_train_op(self):
@@ -154,7 +142,7 @@ class BiRNNModel:
         self.train_op = optimizer.apply_gradients(capped_gvs, name="train_op")
 
 
-class BiPMModel2(BiRNNModel):
+class BiPMModel_AM(BiRNNModel):
     '''
     Attentive_Matching
     '''
@@ -162,12 +150,12 @@ class BiPMModel2(BiRNNModel):
         with tf.variable_scope("Context_Representation_Layer1"):
             outputs1, states1 = tf.nn.bidirectional_dynamic_rnn(rnncells[0], rnncells[1], inputs[0],
                                                                 sequence_length=self.length1,
-#                                                               swap_memory=True,
+                                                                #swap_memory=True,
                                                                 dtype=tf.float32)
         with tf.variable_scope("Context_Representation_Layer2"):
             outputs2, states2 = tf.nn.bidirectional_dynamic_rnn(rnncells[2], rnncells[3], inputs[1],
                                                                 sequence_length=self.length2,
-#                                                               swap_memory=True,
+                                                                #swap_memory=True,
                                                                 dtype=tf.float32)
         return outputs1, outputs2, states1, states2
 
@@ -217,12 +205,12 @@ class BiPMModel2(BiRNNModel):
         with tf.variable_scope("Aggregation_Layer1"):
             _, state1 = tf.nn.bidirectional_dynamic_rnn(rnncells[0], rnncells[1], matching_PQ,
                                                         sequence_length=self.length1,
-#                                                        swap_memory=True,
+                                                        #swap_memory=True,
                                                         dtype=tf.float32)
         with tf.variable_scope("Aggregation_Layer2"):
             _, state2 = tf.nn.bidirectional_dynamic_rnn(rnncells[2], rnncells[3], matching_QP,
                                                         sequence_length=self.length2,
-#                                                        swap_memory=True,
+                                                        #swap_memory=True,
                                                         dtype=tf.float32)
         # [batch_size, num_steps, ag_rnn_units]
         fw1, bw1 = state1
@@ -247,7 +235,7 @@ class BiPMModel2(BiRNNModel):
 
 
 
-class BiPMModel4(BiPMModel2):
+class BiPMModel_MM(BiPMModel_AM):
     '''
     Maxpooling_Matching
     '''
@@ -264,7 +252,7 @@ class BiPMModel4(BiPMModel2):
 
 
 
-class BiPMModel5(BiPMModel2):
+class BiPMModel_MAM(BiPMModel_AM):
     '''
     Max_Attentive_Matching
     '''
@@ -281,7 +269,7 @@ class BiPMModel5(BiPMModel2):
 
 
 
-class BiPMModel3(BiPMModel2):
+class BiPMModel_FM(BiPMModel_AM):
     '''
     Full_Matching
     '''
@@ -346,50 +334,3 @@ class DecAtnModel(BiRNNModel):
         # [batch_size, 2*out_dim]
 #        print(core_output.shape)
         return core_output, mask_Beta
-
-
-#    def compute_loss(self, inputs):
-##        hidden = self._run_core(inputs)
-#        hidden, mask_Beta = self._run_core(inputs)
-#        self.hidden = mask_Beta
-#        
-#        with tf.variable_scope("Dense_Layers"):
-#            for n_node in self.config.mlp_hidden_nodes:
-#                hidden = tf.layers.dense(hidden, n_node, 
-#                                         kernel_initializer=self.initializer())
-#                hidden = tf.layers.batch_normalization(hidden, training=self.training)
-#                hidden = tf.nn.elu(hidden)
-#                hidden = tf.layers.dropout(hidden, self.config.dropout, 
-#                                           training=self.training)
-#
-#        with tf.variable_scope("Loss"):
-#            logits = tf.layers.dense(hidden, 1, kernel_initializer = self.initializer())
-#            logits = tf.layers.batch_normalization(logits, training=self.training,
-#                                                   name = 'logits')
-#
-#            self.scores = tf.nn.sigmoid(logits, name="predict_probs")
-#            float_labels=tf.to_float(self.labels)
-#            clipped_scores = tf.clip_by_value(tf.squeeze(self.scores), 1e-6, 1-1e-6)
-#            loss = -tf.multiply(float_labels, tf.log(clipped_scores))-\
-#                    tf.multiply((1.0-float_labels), tf.log(1.0-clipped_scores))
-#
-##            loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=tf.to_float(self.labels),
-##                                                           logits=tf.squeeze(logits))
-#
-#            # normal loss
-#            self.loss = tf.reduce_mean(loss)
-#            # sigmoid
-#            result_options = tf.concat([1-self.scores, self.scores], axis=1)
-#            self.predicts = tf.argmax(result_options, axis = 1)
-#            self.probabilities = tf.reduce_max(result_options, axis=1)
-#
-#
-#    def add_train_op(self):
-#        self.learning_rate = tf.Variable(self.config.learning_rate, trainable=False)
-#        optimizer = self.config.optimizer(self.learning_rate)
-#        
-#        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-#        with tf.control_dependencies(update_ops):
-#            self.train_op = optimizer.minimize(self.loss, name="train_op")
-
-

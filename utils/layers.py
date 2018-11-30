@@ -173,28 +173,28 @@ def _mask_dim2(batch_size, dim1, dim2, length):
     mask_tile = tf.tile(tf.expand_dims(mask, 1), [1, dim1, 1])
     return mask_tile
 
-def _ffn(P_input, Q_input, out_dim, nodes_list, dropout, training, activation, initializer):
-    def ffn(hidden):
-        # [batch_size, num_steps, 1, in_dim]
-        hidden = tf.expand_dims(hidden, 2)
+
+def _ffn(P_input, Q_input, shape, nodes_list, dropout, training, activation, initializer):
+    batch_size, num_steps, out_dim = shape
+    with tf.variable_scope("Feed_Forward"):
+        # [batch_size, 2*num_steps, 1, in_dim]
+        hidden = tf.expand_dims(tf.concat([P_input, Q_input], axis=1), 2)
         for nodes in nodes_list:
             hidden = tf.layers.conv2d(hidden, nodes, kernel_size=1, strides=(1, 1), 
                                       padding="same", kernel_initializer=initializer)
 #            hidden = tf.layers.batch_normalization(hidden, training=training)
             hidden = activation(hidden)
-            hidden = tf.layers.dropout(hidden, dropout, training=training)
-        # [batch_size, num_steps, 1, out_dim]
+            hidden = tf.layers.dropout(hidden, dropout, 
+                                       noise_shape=[batch_size, 1, 1, nodes],
+                                       training=training)
+        # [batch_size, 2*num_steps, 1, out_dim]
         output = tf.layers.conv2d(hidden, out_dim, kernel_size=1, strides=(1, 1), 
                                   padding="same", kernel_initializer=initializer)
 #        output = tf.layers.batch_normalization(output, training=training)
-        # [batch_size, num_steps, out_dim]
+        # [batch_size, 2*num_steps, out_dim]
         output = tf.squeeze(output, [2])
-        return output
-    
-    with tf.variable_scope("Feed_Forward"):
         # [batch_size, num_steps, out_dim]
-        P_output = ffn(P_input)
-        Q_output = ffn(Q_input)
+        P_output, Q_output = tf.split(output, [num_steps, num_steps], 1)
 
     return P_output, Q_output
 
@@ -207,22 +207,21 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
         P: A tensor with shape [batch_size, num_steps, in_dim]
         Q: A tensor with shape [batch_size, num_steps, in_dim]
     Return:
-        outputs: A tensor with shape [batch_size, num_steps, 4*in_dim]
+        outputs: A tensor with shape [batch_size, num_steps, 2*out_dim]
     '''
     batch_size, num_steps, in_dim, out_dim = config.batch_size, config.num_steps,\
                                              config.wordvec_size, config.DecAtn_out_dim
     with tf.variable_scope(name):
         with tf.variable_scope("Attend"):
             with tf.variable_scope("masks"):
-                zero_ph_1 = tf.placeholder(tf.float32, [batch_size, num_steps, in_dim],
-                                           name="zero_ph_1")
-                zero_ph_2 = tf.placeholder(tf.float32, [batch_size, num_steps, out_dim],
-                                           name="zero_ph_2")
-                zero_ph_3 = tf.placeholder(tf.float32, [batch_size, num_steps, num_steps],
-                                           name="zero_ph_3")
-                zeros_1 = tf.zeros_like(zero_ph_1)
-                zeros_2 = tf.zeros_like(zero_ph_2)
-                zeros_3 = tf.zeros_like(zero_ph_3)
+                def create_zeros(shape=[in_dim, out_dim, num_steps]):
+                    zeros = []
+                    for dim in shape:
+                        zero_ph = tf.placeholder(tf.float32, 
+                                                 [batch_size, num_steps, dim])
+                        zeros.append(tf.zeros_like(zero_ph))
+                    return zeros
+                zeros_1, zeros_2, zeros_3 = create_zeros()
 
                 mask_dim1_PQ_1 = _mask_dim1(batch_size, num_steps, in_dim, P_length)
                 mask_dim1_QP_1 = _mask_dim1(batch_size, num_steps, in_dim, Q_length)
@@ -233,7 +232,8 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
                 mask_dim2_QP = _mask_dim2(batch_size, num_steps, num_steps, P_length)
 
             # [batch_size, num_steps, in_dim]
-            F_P, F_Q = _ffn(P, Q, in_dim, config.DecAtn_ffn_nodes_F, config.dropout,
+            F_P, F_Q = _ffn(P, Q, [batch_size, num_steps, in_dim],
+                            config.DecAtn_ffn_nodes_F, config.dropout,
                             training, activation, initializer)
 
             # [batch_size, num_steps(P),            1, in_dim]
@@ -288,8 +288,9 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
 
         with tf.variable_scope("Compare"):
             # [batch_size, num_steps, out_dim]
-            G_V1, G_V2 = _ffn(P_Beta, Q_Alpha, out_dim, config.DecAtn_ffn_nodes_G, 
-                              config.dropout, training, activation, initializer)
+            G_V1, G_V2 = _ffn(P_Beta, Q_Alpha, [batch_size, num_steps, out_dim],
+                              config.DecAtn_ffn_nodes_G, config.dropout, 
+                              training, activation, initializer)
             # mask G_V1 G_V2
             mask_G_V1 = tf.where(mask_dim1_PQ_2, G_V1, zeros_2)
             mask_G_V2 = tf.where(mask_dim1_QP_2, G_V2, zeros_2)
@@ -299,83 +300,3 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
             outputs = tf.concat(values=[tf.reduce_sum(mask_G_V1, axis=1),
                                         tf.reduce_sum(mask_G_V2, axis=1)], axis=-1)
         return outputs, F_P
-
-
-
-
-
-#def Attentive_Matching_Layer2(P, Q, P_length, Q_length, shape,
-#                              activation=tf.nn.tanh, initializer=None, name=None):
-#    """
-#    Attentive_Matching_Layer.
-#    Args:
-#        P: A tensor with shape [batch_size, num_steps, in_dim]
-#        Q: A tensor with shape [batch_size, num_steps, in_dim]
-#    Return:
-#        mask_matching: A tensor with shape [batch_size, num_steps, 2*in_dim]
-#    """
-#    batch_size, num_steps, in_dim = shape
-#
-#    with tf.variable_scope(name):
-#        AM_W1 = tf.get_variable(name="AM_W1",
-#                                shape=[1, 1, 2*in_dim, in_dim],
-#                                initializer=initializer)
-#        AM_W2 = tf.get_variable(name="AM_W2",
-#                                shape=[1, 1, in_dim, 1],
-#                                initializer=initializer)
-#        AM_b1 = tf.get_variable(name="AM_b1",
-#                                shape=[in_dim],
-#                                initializer=tf.zeros_initializer())
-#        AM_b2 = tf.get_variable(name="AM_b2",
-#                                shape=[1],
-#                                initializer=tf.zeros_initializer())
-#
-#        result = [None]*num_steps
-#        for i in range(num_steps):
-#            # [batch_size, 1, in_dim]
-#            Pi = tf.expand_dims(P[:, i, :], 1)
-#            # [batch_size, num_steps, in_dim]
-#            Pi_tile = tf.tile(Pi, [1, num_steps, 1])
-#            # [batch_size, num_steps, 1, 2*in_dim]
-#            Pi_Q = tf.expand_dims(tf.concat(values=[Pi_tile, Q], axis=-1), 2)
-#            # [batch_size, num_steps, 1, in_dim]
-#            activations = activation(tf.nn.conv2d(Pi_Q, AM_W1, 
-#                                                  strides=[1, 1, 1, 1],
-#                                                  padding="SAME") + AM_b1)
-#            # [batch_size, num_steps, 1, 1]
-#            scores = tf.nn.conv2d(activations, AM_W2, strides=[1, 1, 1, 1],
-#                                  padding="SAME") + AM_b2
-#
-#            # [batch_size, num_steps]
-#            _idx = tf.tile([tf.range(num_steps)], [batch_size, 1])
-#            mask = tf.less(_idx, tf.expand_dims(Q_length, 1))
-#            zeros = tf.zeros([batch_size, num_steps])
-#            mask_logits = tf.where(mask, tf.squeeze(scores, [2, 3]), zeros)
-##            exp_logits = tf.exp(mask_logits
-##                                - tf.reduce_max(mask_logits, axis=1, keepdims=True))
-#            exp_logits = tf.exp(mask_logits)
-#            mask_exps = tf.where(mask, exp_logits, zeros)
-#            weights = tf.div(mask_exps,
-#                             tf.reduce_sum(mask_exps, axis=1, keepdims=True))
-#
-#            # [batch_size, 1, num_steps]*[batch_size, num_steps, in_dim]
-#            # = [batch_size, 1, in_dim]
-#            weighted_sum = tf.matmul(tf.expand_dims(weights, 1), Q)
-#            # [batch_size, 1, 2*in_dim]
-#            result[i] =tf.concat(values=[Pi, weighted_sum], axis=-1) 
-
-
-#        # [batch_size, num_steps, 2*in_dim]
-#        matching_result = tf.concat(values=result, axis = 1)
-#        # (1, num_steps, 1)
-#        num_step_expand = tf.expand_dims(tf.expand_dims(tf.range(num_steps), 0), 2)
-#        # [batch_size, num_steps, 2*in_dim]
-#        _idx = tf.tile(num_step_expand, [batch_size, 1, 2*in_dim])
-#        # [batch_size, 1, 1]
-#        length_range_expand = tf.expand_dims(tf.expand_dims(P_length, 1), 2)
-#        # [batch_size, num_steps, 2*in_dim]
-#        mask = tf.less(_idx, tf.tile(length_range_expand, [1, num_steps, 2*in_dim]))
-#        zeros = tf.zeros([batch_size, num_steps, 2*in_dim])
-#        mask_matching = tf.where(mask, matching_result, zeros)
-#
-#    return mask_matching

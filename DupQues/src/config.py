@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import tensorflow as tf
-from models import BiRNNModel, DecAtnModel #, BiPMModel2, BiPMModel3, BiPMModel4, BiPMModel5
+from models import BiRNNModel, DecAtnModel
 
 
 class Configuration:
@@ -79,6 +79,7 @@ class Configuration:
         '''
             general parameters
         '''
+        self.class1_threshold = 0.37
         self.batch_size = 32
         self.num_steps = 35
         self.wordvec_size = 100

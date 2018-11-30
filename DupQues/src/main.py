@@ -53,7 +53,6 @@ class Classifier:
             sess.run([e1_assign, e2_assign])
 
             best_valid_acc = 0.0
-#            best_valid_acc = 0.8539
             best_valid_epoch = 0
 
             if restore:
@@ -126,7 +125,7 @@ class Classifier:
 
             print(("\nbest valid acc: %.4f")%best_valid_acc)
             metrics = self.trainer.evaluate(self.val_set, model, sess)
-            print(('*'*10 + 'test acc: %.4f')%metrics["acc"])
+            print(('*'*10 + 'valid acc: %.4f')%metrics["acc"])
 
 
     def test(self):
