@@ -43,6 +43,7 @@ class BiRNNModel:
         self.length2 = tf.placeholder(tf.int32, [dim1], name="length2")
         self.labels = tf.placeholder(tf.int32, [dim1], name="labels")
         self.keep_prob = tf.placeholder(tf.float32, [], name="keep_prob")
+        self.emb_keep_prob = tf.placeholder(tf.float32, [], name="emb_keep_prob")
         self.training = tf.placeholder_with_default(False, [], name="training")
 
 
@@ -55,13 +56,22 @@ class BiRNNModel:
                 trainable = self.config.word_embedding_trainable)
             return embedding
         
+        def get_vec_input(_input, name):
+            embedding = add_embedding_helper(name)
+            vec_input = tf.nn.embedding_lookup(embedding, _input)
+            vec_input = tf.nn.dropout(vec_input, self.emb_keep_prob,
+                                      noise_shape=[self.batch_size, self.num_steps, 1])
+            vec_input = tf.multiply(vec_input, self.emb_keep_prob)
+            return vec_input
+            
         with tf.variable_scope("Embed"):
-            embedding1 = add_embedding_helper("embedding1")
-            embedding2 = add_embedding_helper("embedding2")
-        
-        vec_input1 = tf.nn.embedding_lookup(embedding1, self.input1)
-        vec_input2 = tf.nn.embedding_lookup(embedding2, self.input2)
-
+#            embedding1 = add_embedding_helper("embedding1")
+#            embedding2 = add_embedding_helper("embedding2")
+#            vec_input1 = tf.nn.embedding_lookup(embedding1, self.input1)
+#            vec_input2 = tf.nn.embedding_lookup(embedding2, self.input2)
+            vec_input1 = get_vec_input(self.input1, "embedding1")
+            vec_input2 = get_vec_input(self.input2, "embedding2")
+            
         return [vec_input1, vec_input2]
 
 

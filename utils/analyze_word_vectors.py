@@ -10,7 +10,7 @@ from sklearn.manifold import TSNE
 from gensim.models import Word2Vec
 
 # path
-data_dir = os.path.dirname(os.path.dirname(__file__)) + "/DupQues/data/"
+data_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/DupQues/data/"
 word2vec_model_path = data_dir + "word2vec.model"
 
 # load model
@@ -21,26 +21,42 @@ word_vectors = model.wv
 print("num of words: %d" % (len(word_vectors.vocab)))
 
 # t-SNE
-wanted_words = []
-count = 0
-for word in word_vectors.vocab:
-    if count<120:
-        wanted_words.append(word)
-        count += 1
-    else:
-        break
-wanted_vocab = dict((k, word_vectors.vocab[k]) for k in wanted_words if k in word_vectors.vocab)
+def tsne_plot(model):
+    "Creates and TSNE model and plots it"
+    labels = []
+    tokens = []
 
-X = model[wanted_vocab] # X is an array of word vectors, each vector containing 150 tokens
-tsne_model = TSNE(perplexity=40, n_components=2, init="pca", n_iter=5000, random_state=23)
-Y = tsne_model.fit_transform(X)
+    count = 0
+    for word in model.wv.vocab:
+        if count<150:
+            tokens.append(model[word])
+            labels.append(word)
+            count += 1
+        else:
+            break
 
-#Plot the t-SNE output
-fig, ax = plt.subplots(figsize=(20,10))
-ax.scatter(Y[:, 0], Y[:, 1])
-words = list(wanted_vocab)
-for i, word in enumerate(words):
-    plt.annotate(word, xy=(Y[i, 0], Y[i, 1]))
-ax.set_yticklabels([]) #Hide ticks
-ax.set_xticklabels([]) #Hide ticks
-plt.show()
+    tsne_model = TSNE(perplexity=40, n_components=2, init='pca', n_iter=3000, random_state=23)
+    new_values = tsne_model.fit_transform(tokens)
+
+    x = []
+    y = []
+    for value in new_values:
+        x.append(value[0])
+        y.append(value[1])
+        
+    plt.figure(figsize=(20, 15))
+    frame = plt.gca()
+    for i in range(len(x)):
+        plt.scatter(x[i],y[i])
+        plt.annotate(labels[i],
+                     xy=(x[i], y[i]),
+                     xytext=(5, 2),
+                     textcoords='offset points',
+                     ha='right',
+                     va='bottom')
+    frame.axes.set_yticklabels([]) #Hide ticks
+    frame.axes.set_xticklabels([]) #Hide ticks
+    plt.show()
+    plt.savefig("word_embedding_visual.png")
+
+tsne_plot(model)

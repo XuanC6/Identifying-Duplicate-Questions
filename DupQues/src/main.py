@@ -51,7 +51,9 @@ class Classifier:
                     e2_assign = embedding2.assign(word_embedding)
             
             sess.run([e1_assign, e2_assign])
-
+            # assign lr
+            sess.run(tf.assign(model.learning_rate, model.config.learning_rate))
+            
             best_valid_acc = 0.0
             best_valid_epoch = 0
 
@@ -131,6 +133,7 @@ class Classifier:
     def test(self):
         test_set = self.test_set
 #        test_set = self.val_set
+#        test_set = self.train_set
         with tf.Graph().as_default(), tf.Session() as sess:
             model = self.config.model(self.config)
             init = tf.global_variables_initializer()

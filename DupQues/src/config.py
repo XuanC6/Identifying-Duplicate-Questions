@@ -61,13 +61,13 @@ class Configuration:
 #        self.model = BiRNNModel
 #        self.model = BiPMModel2
 #        self.rnn_units = 200
-#        self.mlp_hidden_nodes = [800, 800, 600]
+#        self.mlp_hidden_nodes = [800, 800]
 
 #        self.model = BiPMModel3
 #        self.num_perspectives = 20
 #        self.rnn_units = 100
 #        self.ag_rnn_units = 100
-#        self.mlp_hidden_nodes = [400, 400, 400]
+#        self.mlp_hidden_nodes = [400, 400]
         '''
             Decomposable Attention Model
         '''
@@ -95,12 +95,13 @@ class Configuration:
         '''
         training parameters
         '''
-        self.learning_rate = 1e-4
+        self.learning_rate = 2e-5
         self.lr_decay = False
         self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
         self.least_lr = 1e-5
         self.dropout = 0.1
+        self.emb_keep_prob = 0.99
         
         self.num_epoch = 100
         self.early_stop_epoch = 10

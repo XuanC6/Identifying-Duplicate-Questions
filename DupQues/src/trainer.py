@@ -45,6 +45,7 @@ class Trainer:
                     model.length2: length2,
                     model.labels: labels,
                     model.keep_prob: 1-model.config.dropout,
+                    model.emb_keep_prob: model.config.emb_keep_prob,
                     model.training: True
                     }
                 )
@@ -95,7 +96,8 @@ class Trainer:
                         model.length1: length1,
                         model.length2: length2,
                         model.labels: labels,
-                        model.keep_prob: 1.0
+                        model.keep_prob: 1.0,
+                        model.emb_keep_prob: 1.0
                         }
                 )
         return (hidden, predicts, scores, labels)
