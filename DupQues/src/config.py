@@ -79,7 +79,7 @@ class Configuration:
         '''
             general parameters
         '''
-        self.class1_threshold = 0.37
+        self.class1_threshold = 0.5
         self.batch_size = 32
         self.num_steps = 35
         self.wordvec_size = 100
