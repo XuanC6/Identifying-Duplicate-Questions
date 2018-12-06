@@ -51,9 +51,7 @@ class Classifier:
                     e2_assign = embedding2.assign(word_embedding)
             
             sess.run([e1_assign, e2_assign])
-            # assign lr
-            sess.run(tf.assign(model.learning_rate, model.config.learning_rate))
-            
+
             best_valid_acc = 0.0
             best_valid_epoch = 0
 
@@ -63,6 +61,9 @@ class Classifier:
             
             writer = tf.summary.FileWriter(self.config.log_graph_dir, sess.graph)
             writer.close()
+
+            # assign lr
+            sess.run(tf.assign(model.learning_rate, model.config.learning_rate))
 
             with open(self.config.log_train_acc_path, "a") as train_acc_fp,\
                  open(self.config.log_valid_acc_path, "a") as valid_acc_fp:

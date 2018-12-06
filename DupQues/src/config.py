@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import tensorflow as tf
-from models import BiRNNModel, DecAtnModel
+from models import BiRNNModel, DecAtnModel, BiPMModel_FM
 
 
 class Configuration:
@@ -51,31 +51,31 @@ class Configuration:
         self.id_word_path = os.path.join(data_dir, id_word_name)
         # wordvecs path
         self.wordvecs_path = os.path.join(data_dir, wordvecs_name)
-
         '''
         model parameters
         '''
         '''
-            RNN Model
+            Siamese-GRU Model
         '''
 #        self.model = BiRNNModel
-#        self.model = BiPMModel2
 #        self.rnn_units = 200
 #        self.mlp_hidden_nodes = [800, 800]
-
-#        self.model = BiPMModel3
-#        self.num_perspectives = 20
-#        self.rnn_units = 100
-#        self.ag_rnn_units = 100
-#        self.mlp_hidden_nodes = [400, 400]
+        '''
+            Bi-MPM Model
+        '''
+        self.model = BiPMModel_FM
+        self.num_perspectives = 20
+        self.rnn_units = 200
+        self.ag_rnn_units = 200
+        self.mlp_hidden_nodes = [800, 800]
         '''
             Decomposable Attention Model
         '''
-        self.model = DecAtnModel
-        self.DecAtn_out_dim = 200
-        self.DecAtn_ffn_nodes_F = [100, 100]
-        self.DecAtn_ffn_nodes_G = [200, 200]
-        self.mlp_hidden_nodes = [400, 400]
+#        self.model = DecAtnModel
+#        self.DecAtn_out_dim = 200
+#        self.DecAtn_ffn_nodes_F = [100, 100]
+#        self.DecAtn_ffn_nodes_G = [200, 200]
+#        self.mlp_hidden_nodes = [400, 400]
         '''
             general parameters
         '''
@@ -95,7 +95,7 @@ class Configuration:
         '''
         training parameters
         '''
-        self.learning_rate = 2e-5
+        self.learning_rate = 1e-3
         self.lr_decay = False
         self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
@@ -112,7 +112,6 @@ class Configuration:
         # model saved period when model_save_by_best_valid==False
         self.model_save_period = 5
         self.shuffle_data = True
-
         '''
         log paths
         '''

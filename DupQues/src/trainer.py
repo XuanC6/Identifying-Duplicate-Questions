@@ -88,8 +88,8 @@ class Trainer:
         length2 = [self.length2[ix] for ix in batch_idxs]
         labels = [self.labels[ix] for ix in batch_idxs]
 
-        hidden, predicts, scores = sess.run(
-                [model.hidden, model.predicts, model.scores],
+        predicts, scores = sess.run(
+                [model.predicts, model.scores],
                 feed_dict={
                         model.input1: input1,
                         model.input2: input2,
@@ -100,7 +100,7 @@ class Trainer:
                         model.emb_keep_prob: 1.0
                         }
                 )
-        return (hidden, predicts, scores, labels)
+        return (predicts, scores, labels)
 
 
     def evaluate(self, raw_data, model, sess):
@@ -120,11 +120,10 @@ class Trainer:
             if min(step+batch_size,len(self.labels)) < batch_size + step:
                 break
 
-            hidden, predicts, scores, labels = \
+            predicts, scores, labels = \
                                 self._evaluate_one_minibatch(step, model, sess)
 
 #            if step==1600:
-#                print(hidden)
 #                print(list(zip(predicts, scores)))
 
             for pred, label in zip(predicts, labels):

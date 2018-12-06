@@ -299,4 +299,4 @@ def Decomposable_Attention_Layer(P, Q, P_length, Q_length, config, training,
             # [batch_size, 2*out_dim]
             outputs = tf.concat(values=[tf.reduce_sum(mask_G_V1, axis=1),
                                         tf.reduce_sum(mask_G_V2, axis=1)], axis=-1)
-        return outputs, F_P
+        return outputs

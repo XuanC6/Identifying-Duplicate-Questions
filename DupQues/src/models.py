@@ -15,7 +15,7 @@ from layers import Attentive_Matching_Layer, Full_Matching_Layer, \
 
 class BiRNNModel:
     '''
-    Siamese_GRU
+    Siamese-GRU
     '''
     def __init__(self, config):
         self.config = config
@@ -65,10 +65,6 @@ class BiRNNModel:
             return vec_input
             
         with tf.variable_scope("Embed"):
-#            embedding1 = add_embedding_helper("embedding1")
-#            embedding2 = add_embedding_helper("embedding2")
-#            vec_input1 = tf.nn.embedding_lookup(embedding1, self.input1)
-#            vec_input2 = tf.nn.embedding_lookup(embedding2, self.input2)
             vec_input1 = get_vec_input(self.input1, "embedding1")
             vec_input2 = get_vec_input(self.input2, "embedding2")
             
@@ -82,8 +78,6 @@ class BiRNNModel:
                                                kernel_initializer=self.rnn_initializer())
              rnncells[i] = tf.nn.rnn_cell.DropoutWrapper(_rnncell,
                                                          output_keep_prob=self.keep_prob)
-#            rnncells[i] = tf.nn.rnn_cell.GRUCell(num_units=num_units,
-#                                                 kernel_initializer=self.rnn_initializer())
         return rnncells
 
 
@@ -107,8 +101,7 @@ class BiRNNModel:
 
 
     def compute_loss(self, inputs):
-        hidden, mask_Beta = self._run_core(inputs)
-        self.hidden = mask_Beta
+        hidden = self._run_core(inputs)
         
         with tf.variable_scope("Dense_Layers"):
             for n_node in self.config.mlp_hidden_nodes:
@@ -140,7 +133,6 @@ class BiRNNModel:
             self.predicts = tf.argmax(result_options, axis = 1)
 
 
-
     def add_train_op(self):
         self.learning_rate = tf.Variable(self.config.learning_rate, trainable=False)
         optimizer = self.config.optimizer(self.learning_rate)
@@ -150,6 +142,7 @@ class BiRNNModel:
                                             self.config.grad_threshold), var)
                             for grad, var in grads_and_vars]
         self.train_op = optimizer.apply_gradients(capped_gvs, name="train_op")
+
 
 
 class BiPMModel_AM(BiRNNModel):
@@ -335,7 +328,7 @@ class DecAtnModel(BiRNNModel):
     '''
     def _run_core(self, inputs):
         # calculate output
-        core_output, mask_Beta = Decomposable_Attention_Layer(inputs[0], inputs[1],
+        core_output = Decomposable_Attention_Layer(inputs[0], inputs[1],
                                                    self.length1, self.length2,
                                                    config=self.config,
                                                    training=self.training,
@@ -343,4 +336,4 @@ class DecAtnModel(BiRNNModel):
                                                    name="DecAtn_Layer")
         # [batch_size, 2*out_dim]
 #        print(core_output.shape)
-        return core_output, mask_Beta
+        return core_output
