@@ -49,11 +49,8 @@ class Classifier:
                                                   self.config.wordvec_size])
                     e1_assign = embedding1.assign(word_embedding)
                     e2_assign = embedding2.assign(word_embedding)
-            
-            sess.run([e1_assign, e2_assign])
 
-            best_valid_acc = 0.8416
-            best_valid_epoch = 0
+            sess.run([e1_assign, e2_assign])
 
             if restore:
                 print("Continue Training")
@@ -64,6 +61,12 @@ class Classifier:
 
             # assign lr
             sess.run(tf.assign(model.learning_rate, model.config.learning_rate))
+
+            # evaluate on valid data to get initial acc
+            metrics = self.trainer.evaluate(self.val_set, model, sess)
+            print(('initial acc: %.4f')%metrics["acc"])
+            best_valid_acc = metrics["acc"]
+            best_valid_epoch = 0
 
             with open(self.config.log_train_acc_path, "a") as train_acc_fp,\
                  open(self.config.log_valid_acc_path, "a") as valid_acc_fp:
@@ -127,8 +130,6 @@ class Classifier:
                 saver.save(sess, self.config.model_path)
 
             print(("\nbest valid acc: %.4f")%best_valid_acc)
-            metrics = self.trainer.evaluate(self.val_set, model, sess)
-            print(('*'*10 + 'valid acc: %.4f')%metrics["acc"])
 
 
     def test(self):
