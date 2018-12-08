@@ -52,7 +52,7 @@ class Classifier:
             
             sess.run([e1_assign, e2_assign])
 
-            best_valid_acc = 0.0
+            best_valid_acc = 0.8416
             best_valid_epoch = 0
 
             if restore:

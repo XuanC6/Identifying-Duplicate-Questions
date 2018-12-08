@@ -98,7 +98,7 @@ class Configuration:
         '''
         training parameters
         '''
-        self.learning_rate = 1e-3
+        self.learning_rate = 2e-4
         self.lr_decay = False
         self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
