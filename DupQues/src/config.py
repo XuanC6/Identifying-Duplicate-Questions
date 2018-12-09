@@ -64,7 +64,7 @@ class Configuration:
             Bi-MPM Model
         '''
         self.model = BiPMModel_FM
-        self.num_perspectives = 20
+        self.num_perspectives = 50
 #        self.rnn_units = 200
 #        self.ag_rnn_units = 200
 #        self.mlp_hidden_nodes = [800, 800]
@@ -82,7 +82,7 @@ class Configuration:
         '''
             general parameters
         '''
-        self.class1_threshold = 0.37
+        self.class1_threshold = 0.5
         self.batch_size = 32
         self.num_steps = 35
         self.wordvec_size = 100
@@ -98,7 +98,7 @@ class Configuration:
         '''
         training parameters
         '''
-        self.learning_rate = 1e-4
+        self.learning_rate = 1e-3
         self.lr_decay = False
         self.lr_decay_epoch = 5
         self.lr_decay_rate = 0.9
