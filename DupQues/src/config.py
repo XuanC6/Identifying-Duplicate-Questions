@@ -64,7 +64,7 @@ class Configuration:
             Bi-MPM Model
         '''
         self.model = BiPMModel_FM
-        self.num_perspectives = 80
+        self.num_perspectives = 50
 #        self.rnn_units = 200
 #        self.ag_rnn_units = 200
 #        self.mlp_hidden_nodes = [800, 800]
